@@ -17,7 +17,6 @@ void initialize_LoRaWAN() {
     mySerial.begin(57600, SERIAL_8N1, RX, TX); // Initialize UART communication
     mySerial.setTimeout(1000);              // Set timeout to 1000ms
     initialize_module_rn2483_LoRa();
-    myLora.sendRawCommand("mac set conf 1"); // Enable confirmed uplink
 }
 
 void initialize_module_rn2483_LoRa() {
@@ -41,6 +40,7 @@ void initialize_module_rn2483_LoRa() {
     Serial.println("DevEUI: " + devEUI);
     Serial.println("Firmware: " + myLora.sysver());
 
+    myLora.sendRawCommand("mac set deveui " + devEUI); // Set DevEUI explicitly
     bool join_result = myLora.initOTAA("BE010000000007BA", "064D3897B8F4382A8C937BCA890435D3");
     while (!join_result) {
         Serial.println("Join failed. Retrying...");
@@ -51,6 +51,8 @@ void initialize_module_rn2483_LoRa() {
 }
 
 void send(Module module, Status status, const char* data) {
+    myLora.sendRawCommand("mac set conf 1"); // Enable confirmed uplink
+
     led_on();
     TX_RETURN_TYPE response = myLora.tx(data);
     if (response == TX_SUCCESS) {
