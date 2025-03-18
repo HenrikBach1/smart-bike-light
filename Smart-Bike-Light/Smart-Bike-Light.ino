@@ -17,5 +17,14 @@ void setup() {
 }
 
 void loop() {
-  send(MODULE_NONE, STATUS_OK, "!"); // Send data
+  led_on();
+  TX_RETURN_TYPE response = send(MODULE_NONE, STATUS_OK, "!"); // Send data
+  if (response == TX_SUCCESS) {
+      Serial.println("Message sent!");
+  } else if (response == TX_FAIL) {
+      Serial.println("Failed to send.");
+  } else {
+      Serial.println("Unknown response.");
+  }
+  led_off();
 }

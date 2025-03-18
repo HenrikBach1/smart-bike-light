@@ -50,18 +50,9 @@ void initialize_module_rn2483_LoRa() {
     Serial.println("Successfully joined!");
 }
 
-void send(Module module, Status status, const char* data) {
+TX_RETURN_TYPE send(Module module, Status status, const char* data) {
     myLora.sendRawCommand("mac set conf 1"); // Enable confirmed uplink
 
-    led_on();
-    TX_RETURN_TYPE response = myLora.tx(data);
-    if (response == TX_SUCCESS) {
-        Serial.println("Message sent!");
-    } else if (response == TX_FAIL) {
-        Serial.println("Failed to send.");
-    } else {
-        Serial.println("Unknown response.");
-    }
-    led_off();
+    TX_RETURN_TYPE response = TX_SUCCESS; //TODO:HB: For now: myLora.tx(data);
     //delay(1000); //TODO: HB: 1% duty cycle implemented in this way, for now or does the WAN implementation this for us?
 }

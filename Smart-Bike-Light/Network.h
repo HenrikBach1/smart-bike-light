@@ -24,6 +24,6 @@ extern rn2xx3 myLora;           // Declare rn2xx3 object
 void initialize_globals();
 void initialize_LoRaWAN();
 void initialize_module_rn2483_LoRa();
-void send(Module module, Status status, const char* data);
+TX_RETURN_TYPE send(Module module, Status status, const char* data);
 
 #endif // NETWORK_H
