@@ -1,0 +1,11 @@
+#ifndef LEDCONTROL_H
+#define LEDCONTROL_H
+
+#include <Arduino.h> // Include Arduino library for digitalWrite and pinMode
+#include "Pins.h"    // Include Pins.h for LED_PIN
+
+void initialize_LED();
+void led_on();
+void led_off();
+
+#endif // LEDCONTROL_H
