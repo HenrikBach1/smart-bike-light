@@ -18,7 +18,9 @@ void setup() {
 
 void loop() {
   led_on();
-  TX_RETURN_TYPE response = send(MODULE_NONE, STATUS_OK, "!"); // Send data
+
+  Serial.println("TXing");
+  TX_RETURN_TYPE response = transeive(MODULE_NONE, STATUS_OK, "!"); // Send data and receive waiting data
   if (response == TX_SUCCESS) {
       Serial.println("Message sent!");
   } else if (response == TX_FAIL) {
@@ -26,5 +28,12 @@ void loop() {
   } else {
       Serial.println("Unknown response.");
   }
+
+  if (message != "") {
+    Serial.println("RXing: " + message);
+    message = "";
+    Serial.println("Reset message: " + message);
+  }
+
   led_off();
 }
