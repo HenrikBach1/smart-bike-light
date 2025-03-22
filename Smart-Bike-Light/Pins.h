@@ -3,6 +3,8 @@
 #ifndef PINS_H
 #define PINS_H
 
+#include <Arduino.h> // Include Arduino library for digitalWrite and pinMode
+
 #define LED_PIN 2   // GPIO for LED
 #define RX      18  // UART RX
 #define TX      19  // UART TX

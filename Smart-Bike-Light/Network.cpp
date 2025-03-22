@@ -46,9 +46,9 @@ void initialize_module_rn2483_LoRa() {
 
     //myLora.sendRawCommand("mac set deveui " + devEUI); // Set DevEUI explicitly
     //OTAA: initOTAA(String AppEUI, String AppKey);
-    const char* appEUI = "0000000000000000"; //HB:
-    const char* appKey = "5EA67FF029810B31D0805D4749AA682E"; //HB:
-    bool join_result = myLora.initOTAA(appEUI, appKey); //HB:
+    const char* appEUI = "0000000000000000";
+    const char* appKey = "5EA67FF029810B31D0805D4749AA682E";
+    bool join_result = myLora.initOTAA(appEUI, appKey);
     while (!join_result) {
         Serial.println("Join failed. Retrying...");
         delay(60000);
