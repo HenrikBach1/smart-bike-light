@@ -1,3 +1,6 @@
+//file=LedControl.cpp
+
+#include <Arduino.h> // Include Arduino library for digitalWrite and pinMode
 #include "LedControl.h"
 
 void initialize_LED() {
