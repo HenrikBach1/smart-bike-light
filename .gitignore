@@ -9,7 +9,7 @@
 **/fileHashes/fileHashes.lock
 **/fileHashes/resourceHashesCache.bin
 **/file-system.probe
-.gradle/
+# .gradle/
 
 *.iml
 *.klib
