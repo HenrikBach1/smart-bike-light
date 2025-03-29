@@ -9,7 +9,6 @@
 **/fileHashes/fileHashes.lock
 **/fileHashes/resourceHashesCache.bin
 **/file-system.probe
-# .gradle/
 
 *.iml
 *.klib
@@ -19,4 +18,6 @@
 *.war
 *.ear
 
-FE-Kotlin-MP/gradle-8.3-bin.zip
+**/local.properties
+
+FE-Kotlin-MP/gradle*bin.zip

@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.konan.target.HostManager
 
 plugins {
     kotlin("multiplatform") // Kotlin Multiplatform Plugin
-    kotlin("native.cocoapods") // Kotlin Cocoapods Plugin for iOS
+    // kotlin("native.cocoapods") // Kotlin Cocoapods Plugin for iOS
     kotlin("plugin.serialization") version "1.9.10" // Serialization Plugin
     id("com.android.library") // Required for Android
 }
