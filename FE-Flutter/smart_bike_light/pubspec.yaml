@@ -1,0 +1,27 @@
+name: fe_flutter
+description: FE-Flutter application.
+
+publish_to: "none" # Prevents accidental publishing to pub.dev.
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  material_color_utilities: 0.11.1 # Align with flutter_test's pinned version
+  # Additional dependencies can be added here.
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  async: 2.12.0 # Align with flutter_test's pinned version
+  fake_async: 1.3.2 # Align with flutter_test's pinned version
+  leak_tracker: 10.0.8 # Align with flutter_test's pinned version
+  vm_service: 14.3.1 # Align with flutter_test's pinned version
+  flutter_lints: ^5.0.0 # Ensure this is present
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,77 @@
+# Flutter/Dart specific
+.dart_tool/
+.packages
+pubspec.lock
+
+# Flutter plugins and dependencies
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# Symbolication and obfuscation
+app.*.symbols
+app.*.map.json
+
+# Generated API documentation
+**/doc/api/
+
+# iOS-specific build outputs
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Android-specific build outputs
+android/.gradle/
+android/app/build/
+
+# Android Studio build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Exclude unnecessary files
+*.tmp
+*.log
+*.lock
+
+# Flutter build directory
+build/
+
+# macOS build directory (if applicable)
+.macos/
+
+# Lock file for Flutter plugins
+*.flutter-plugins-dependencies.lock
+
+# Lock file for Dart tools
+*.dart_tool.lock
+
+# Flutter metadata file
+.metadata
+
+# Dart analysis options
+analysis_options.yaml
+
+# Ignore AndroidManifest for all build variants
+android/app/src/*/AndroidManifest.xml
+
+# Xcode workspace settings
+ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+# Generated plugin registrant for Linux
+linux/flutter/generated_plugin_registrant.*
+
+# Generated plugins file for Linux
+linux/flutter/generated_plugins.cmake
+
+# Generated plugin registrant for macOS
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Exclude all generated plugin files
+**/generated_plugins.cmake
+
+# Exclude all plugin registrant files
+**/generated_plugin_registrant.*
+
+# Exclude all IDEWorkspaceChecks.plist files
+**/IDEWorkspaceChecks.plist
