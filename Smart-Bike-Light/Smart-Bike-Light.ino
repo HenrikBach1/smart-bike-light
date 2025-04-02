@@ -8,7 +8,7 @@
 #include "Network.h"
 
 void setup() {
-  Serial.begin(57600); // Open serial communication
+  Serial.begin(115200); // Open serial communication
   delay(200); // Wait for serial console to open
   Serial.println("Startup");
 
