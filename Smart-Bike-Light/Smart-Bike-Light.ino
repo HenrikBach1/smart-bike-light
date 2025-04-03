@@ -6,6 +6,7 @@
 
 #include "LedControl.h"
 #include "Network.h"
+#include "Globals.h" // Include (Pins.h) for LED_PIN, RST, RX, TX, and UART
 
 void setup() {
   Serial.begin(115200); // Open serial communication

@@ -6,17 +6,8 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <rn2xx3.h>
-#include "Pins.h" // Include Pins.h for LED_PIN, RST, RX, TX, and UART
-
-typedef enum {
-    MODULE_NONE = 0,
-    MODULE_LORAWAN
-} Module;
-
-typedef enum {
-    STATUS_OK = 0,
-    STATUS_ERROR = -1
-} Status;
+#include "Globals.h" // Include Pins.h for LED_PIN, RST, RX, TX, and UART
+//HB: #include "Pins.h" // Include Pins.h for LED_PIN, RST, RX, TX, and UART
 
 extern HardwareSerial mySerial; // Declare Serial object
 extern rn2xx3 myLora;           // Declare rn2xx3 object

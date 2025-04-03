@@ -15,21 +15,48 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smart Bike Light',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const DeviceDataScreen(),
+      home: const TabbedHomePage(), // Set the home to the tabbed page
     );
   }
 }
 
-class DeviceDataScreen extends StatefulWidget {
-  const DeviceDataScreen({super.key});
+class TabbedHomePage extends StatelessWidget {
+  const TabbedHomePage({super.key});
 
   @override
-  DeviceDataScreenState createState() => DeviceDataScreenState();
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 1, // Only one tab now
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Smart Bike Light'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Test'), // Single tab renamed to "Test"
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            TestPage(), // "Test" tab content
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class DeviceDataScreenState extends State<DeviceDataScreen> {
+class TestPage extends StatefulWidget {
+  const TestPage({super.key});
+
+  @override
+  TestPageState createState() => TestPageState(); // Correctly implemented state
+}
+
+class TestPageState extends State<TestPage> {
   final TextEditingController _devEuiController = TextEditingController();
   final TextEditingController _messageController = TextEditingController(); // Controller for the message input field
+  final TextEditingController _hexPrefixController = TextEditingController(); // Controller for the hex prefix input field
   String _deviceData = '';
   bool _isLoading = false;
   MqttServerClient? _client; // Use MqttServerClient for native platforms
@@ -166,12 +193,33 @@ Latest Uplink Data:
   Future<void> sendMessage(String message) async {
     if (_client != null && _client!.connectionStatus!.state == MqttConnectionState.connected) {
       final topic = 'v3/smart-bike-light-henrikbach1@ttn/devices/iot-course-device-1/down/push'; // Corrected downlink topic
-      final encodedMessage = utf8.encode(message).map((byte) => byte.toRadixString(16).padLeft(2, '0').toUpperCase()).join(''); // Encode the message in uppercase hex
+
+      // Get the hex prefix and validate it
+      String hexPrefix = _hexPrefixController.text.trim();
+      if (hexPrefix.isNotEmpty) {
+        try {
+          final int hexValue = int.parse(hexPrefix, radix: 16); // Validate hex input
+          if (hexValue < 0 || hexValue > 255) {
+            throw FormatException('Hex value out of range');
+          }
+          hexPrefix = hexValue.toRadixString(16).padLeft(2, '0').toUpperCase(); // Ensure 2-digit uppercase hex
+        } catch (e) {
+          setState(() {
+            _deviceData = 'Invalid hex prefix: $hexPrefix. Please enter a valid one-byte hex value.';
+          });
+          return;
+        }
+      }
+
+      // Prefix the hex value to the message
+      final prefixedMessage = hexPrefix.isNotEmpty ? '$hexPrefix$message' : message;
+
+      final encodedMessage = utf8.encode(prefixedMessage).map((byte) => byte.toRadixString(16).padLeft(2, '0').toUpperCase()).join(''); // Encode the message in uppercase hex
       final payload = json.encode({
         "downlinks": [
           {
             "f_port": 1, // Replace with the correct port if needed
-            "frm_payload": base64.encode(utf8.encode(message)), // Use Base64 for the actual payload
+            "frm_payload": base64.encode(utf8.encode(prefixedMessage)), // Use Base64 for the actual payload
             "confirmed": false // Set to true if a confirmed downlink is required
           }
         ]
@@ -184,11 +232,11 @@ Latest Uplink Data:
         _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
         debugPrint('Message sent to topic $topic: $payload');
         setState(() {
-          _lastSentMessage = message; // Update the last sent message
+          _lastSentMessage = prefixedMessage; // Update the last sent message
           _lastEncodedMessage = encodedMessage; // Update the last encoded message
           _deviceData = '''
 Message sent:
-- Original: $message
+- Original: $prefixedMessage
 - Encoded (Hex): $encodedMessage
 ''';
         });
@@ -214,66 +262,71 @@ Message sent:
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Smart Bike Light')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView( // Wrap the Column in a scrollable widget
-          child: Column(
-            children: [
-              TextField(
-                controller: _devEuiController,
-                decoration: const InputDecoration(
-                  labelText: 'Enter Device EUI (DevEUI)',
-                  border: OutlineInputBorder(),
-                ),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            TextField(
+              controller: _devEuiController,
+              decoration: const InputDecoration(
+                labelText: 'Enter Device EUI (DevEUI)',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  final devEui = _devEuiController.text.trim();
-                  if (devEui.isNotEmpty) {
-                    connectToMqtt(devEui);
-                  }
-                },
-                child: const Text('Connect and Fetch Data'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                final devEui = _devEuiController.text.trim();
+                if (devEui.isNotEmpty) {
+                  connectToMqtt(devEui);
+                }
+              },
+              child: const Text('Connect and Fetch Data'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _hexPrefixController,
+              decoration: const InputDecoration(
+                labelText: 'Module Number in Hex (1 Byte)',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _messageController,
-                decoration: const InputDecoration(
-                  labelText: 'Enter Message to Send',
-                  border: OutlineInputBorder(),
-                ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _messageController,
+              decoration: const InputDecoration(
+                labelText: 'Enter Message to Send',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  final message = _messageController.text.trim();
-                  if (message.isNotEmpty) {
-                    sendMessage(message);
-                  }
-                },
-                child: const Text('Send Message'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                final message = _messageController.text.trim();
+                if (message.isNotEmpty) {
+                  sendMessage(message);
+                }
+              },
+              child: const Text('Send Message'),
+            ),
+            const SizedBox(height: 16),
+            if (_lastSentMessage.isNotEmpty) ...[
+              Text(
+                'Last Sent Message:',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
+              Text('Original: $_lastSentMessage'),
+              Text('Encoded (Hex): $_lastEncodedMessage'),
               const SizedBox(height: 16),
-              if (_lastSentMessage.isNotEmpty) ...[
-                Text(
-                  'Last Sent Message:',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text('Original: $_lastSentMessage'),
-                Text('Encoded (Hex): $_lastEncodedMessage'),
-                const SizedBox(height: 16),
-              ],
-              _isLoading
-                  ? const CircularProgressIndicator()
-                  : Text(
-                      _deviceData,
-                      style: const TextStyle(fontSize: 14),
-                    ),
             ],
-          ),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : Text(
+                    _deviceData,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+          ],
         ),
       ),
     );
