@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mqtt_client/mqtt_client.dart';
-import 'package:mqtt_client/mqtt_server_client.dart'; // Use only MqttServerClient
+import 'package:smart_bike_light/api/ttn_api.dart'; // Import TTN API module
 import 'dart:convert';
 
 void main() {
@@ -15,7 +14,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smart Bike Light',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const TabbedHomePage(), // Set the home to the tabbed page
+      home: const TabbedHomePage(),
     );
   }
 }
@@ -26,19 +25,19 @@ class TabbedHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 1, // Only one tab now
+      length: 1,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Smart Bike Light'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Test'), // Single tab renamed to "Test"
+              Tab(text: 'Test'),
             ],
           ),
         ),
         body: const TabBarView(
           children: [
-            TestPage(), // "Test" tab content
+            TestPage(),
           ],
         ),
       ),
@@ -50,20 +49,25 @@ class TestPage extends StatefulWidget {
   const TestPage({super.key});
 
   @override
-  TestPageState createState() => TestPageState(); // Correctly implemented state
+  TestPageState createState() => TestPageState();
 }
 
 class TestPageState extends State<TestPage> {
   final TextEditingController _devEuiController = TextEditingController();
-  final TextEditingController _messageController = TextEditingController(); // Controller for the message input field
-  final TextEditingController _hexPrefixController = TextEditingController(); // Controller for the hex prefix input field
+  final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _hexPrefixController = TextEditingController();
   String _deviceData = '';
   bool _isLoading = false;
-  MqttServerClient? _client; // Use MqttServerClient for native platforms
-  static const int maxRetries = 5; // Maximum retry attempts
-  int retryCount = 0; // Current retry count
-  String _lastSentMessage = ''; // Store the last sent message
-  String _lastEncodedMessage = ''; // Store the last encoded message
+  TTNApi? _ttnApi; // Use TTNApi for API interactions
+
+  @override
+  void initState() {
+    super.initState();
+    _ttnApi = TTNApi(
+      baseUrl: 'https://eu1.cloud.thethings.network',
+      apiKey: 'NNSXS.2RRIRHET3ST3AKV7YMQKLQNPWAYDGME5B6ILBHA.EZUBU7VTBNBHP4J45MZYX6674P6SUTTO2Z4YJ2D6CEMFFEYS3B4Q',
+    );
+  }
 
   Future<void> connectToMqtt(String devEui) async {
     setState(() {
@@ -71,193 +75,58 @@ class TestPageState extends State<TestPage> {
       _deviceData = 'Connecting to MQTT broker...';
     });
 
-    // Configure MqttServerClient with SSL/TLS
-    final client = MqttServerClient.withPort(
-      'eu1.cloud.thethings.network',
-      '',
-      8883, // Secure TCP port
-    );
-    client.secure = true; // Enable SSL/TLS
-    client.onBadCertificate = (dynamic certificate) => true; // Allow self-signed certificates
-    client.logging(on: true); // Enable detailed logging
-    client.keepAlivePeriod = 20;
-    client.setProtocolV311(); // Explicitly set protocol to MQTT v3.1.1
-    client.connectTimeoutPeriod = 20000; // Set timeout to 20 seconds
-
-    client.onConnected = () {
-      debugPrint('Connected to MQTT broker');
-      setState(() {
-        _deviceData = 'Connected to MQTT broker. Subscribing to topic...';
-      });
-    };
-
-    client.onDisconnected = () {
-      debugPrint('Disconnected from MQTT broker');
-      setState(() {
-        _deviceData = 'Disconnected from MQTT broker.';
-      });
-    };
-
-    client.onSubscribed = (String topic) {
-      debugPrint('Successfully subscribed to topic: $topic');
-      setState(() {
-        _deviceData = 'Successfully subscribed to topic: $topic';
-      });
-    };
-
-    client.onSubscribeFail = (String topic) async {
-      debugPrint('Failed to subscribe to topic: $topic');
-      setState(() {
-        _deviceData = 'Failed to subscribe to topic: $topic. Retrying... ($retryCount/$maxRetries)';
-      });
-
-      if (retryCount < maxRetries) {
-        retryCount++;
-        debugPrint('Retrying subscription for topic: $topic (Attempt $retryCount)');
-        final specificTopic = 'v3/smart-bike-light-henrikbach1@ttn/devices/iot-course-device-1/up';
-        client.subscribe(specificTopic, MqttQos.atLeastOnce);
-      } else {
-        debugPrint('Max retry attempts reached for topic: $topic');
-        setState(() {
-          _deviceData = 'Max retry attempts reached for topic: $topic. Please check permissions or topic format.';
-        });
-      }
-    };
-
-    final connMessage = MqttConnectMessage()
-        .withProtocolName('MQTT') // Use 'MQTT' for v3.1.1
-        .withProtocolVersion(4) // Protocol version 4 is MQTT v3.1.1
-        .withClientIdentifier('flutterclient${DateTime.now().millisecondsSinceEpoch}')
-        .authenticateAs(
-          'smart-bike-light-henrikbach1@ttn', // Application ID with @ttn suffix
-          'NNSXS.2RRIRHET3ST3AKV7YMQKLQNPWAYDGME5B6ILBHA.EZUBU7VTBNBHP4J45MZYX6674P6SUTTO2Z4YJ2D6CEMFFEYS3B4Q', // API Key
-        )
-        .startClean()
-        .withWillQos(MqttQos.atMostOnce);
-
-    client.connectionMessage = connMessage;
-
     try {
-      await client.connect();
-      retryCount = 0; // Reset retry count on successful connection
-
-      // Attempt to subscribe to the specific device topic
-      final specificTopic = 'v3/smart-bike-light-henrikbach1@ttn/devices/iot-course-device-1/up';
-      client.subscribe(specificTopic, MqttQos.atLeastOnce);
-
-      client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
-        final MqttPublishMessage message = messages[0].payload as MqttPublishMessage;
-        final payload = MqttPublishPayload.bytesToStringAsString(message.payload.message);
-
-        debugPrint('Raw MQTT message received: $payload'); // Log the raw payload
-
+      final applicationId = 'smart-bike-light-henrikbach1'; // Replace with your application ID
+      await _ttnApi!.connectToMqtt(applicationId, devEui, (payload) {
+        debugPrint('Raw payload received: $payload'); // Log raw payload
         try {
-          // Parse the JSON payload
-          final data = json.decode(payload);
-          debugPrint('Parsed JSON data: $data'); // Log the parsed JSON
-
-          final uplinkMessage = data['uplink_message'];
-          final receivedAt = uplinkMessage?['received_at'] ?? 'N/A';
-          final frmPayload = uplinkMessage?['frm_payload'] ?? 'N/A';
-          final decodedPayload = utf8.decode(base64.decode(frmPayload));
-
-          // Update the UI with the latest uplink data
+          // Parse the payload as JSON
+          final data = jsonDecode(payload);
+          debugPrint('Parsed data: $data'); // Log parsed data
           setState(() {
-            _deviceData = '''
-Latest Uplink Data:
-- Received At: $receivedAt
-- Decoded Payload: $decodedPayload
-''';
+            _deviceData = 'Received payload: $data';
           });
         } catch (e) {
-          debugPrint('Error parsing uplink data: $e');
+          debugPrint('Error parsing payload: $e'); // Log parsing errors
           setState(() {
-            _deviceData = 'Error parsing uplink data: $e';
+            _deviceData = 'Error parsing payload: $e';
           });
         }
       });
     } catch (e) {
-      debugPrint('Connection error: $e');
       setState(() {
-        _deviceData = 'Connection error: $e. Please verify API key and broker settings.';
+        _deviceData = 'Error connecting to MQTT: $e';
       });
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
-
-    _client = client; // Assign the client to the common base class
   }
 
   Future<void> sendMessage(String message) async {
-    if (_client != null && _client!.connectionStatus!.state == MqttConnectionState.connected) {
-      final topic = 'v3/smart-bike-light-henrikbach1@ttn/devices/iot-course-device-1/down/push'; // Corrected downlink topic
-
-      // Get the hex prefix and validate it
-      String hexPrefix = _hexPrefixController.text.trim();
-      if (hexPrefix.isNotEmpty) {
-        try {
-          final int hexValue = int.parse(hexPrefix, radix: 16); // Validate hex input
-          if (hexValue < 0 || hexValue > 255) {
-            throw FormatException('Hex value out of range');
-          }
-          hexPrefix = hexValue.toRadixString(16).padLeft(2, '0').toUpperCase(); // Ensure 2-digit uppercase hex
-        } catch (e) {
-          setState(() {
-            _deviceData = 'Invalid hex prefix: $hexPrefix. Please enter a valid one-byte hex value.';
-          });
-          return;
-        }
-      }
-
-      // Prefix the hex value to the message
+    try {
+      final hexPrefix = _hexPrefixController.text.trim();
       final prefixedMessage = hexPrefix.isNotEmpty ? '$hexPrefix$message' : message;
-
-      final encodedMessage = utf8.encode(prefixedMessage).map((byte) => byte.toRadixString(16).padLeft(2, '0').toUpperCase()).join(''); // Encode the message in uppercase hex
-      final payload = json.encode({
+      final payload = {
         "downlinks": [
           {
-            "f_port": 1, // Replace with the correct port if needed
-            "frm_payload": base64.encode(utf8.encode(prefixedMessage)), // Use Base64 for the actual payload
-            "confirmed": false // Set to true if a confirmed downlink is required
+            "f_port": 1,
+            "frm_payload": base64.encode(utf8.encode(prefixedMessage)),
+            "confirmed": false,
           }
         ]
-      });
+      };
 
-      final builder = MqttClientPayloadBuilder();
-      builder.addString(payload);
-
-      try {
-        _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
-        debugPrint('Message sent to topic $topic: $payload');
-        setState(() {
-          _lastSentMessage = prefixedMessage; // Update the last sent message
-          _lastEncodedMessage = encodedMessage; // Update the last encoded message
-          _deviceData = '''
-Message sent:
-- Original: $prefixedMessage
-- Encoded (Hex): $encodedMessage
-''';
-        });
-      } catch (e) {
-        debugPrint('Error sending message: $e');
-        setState(() {
-          _deviceData = 'Error sending message: $e';
-        });
-      }
-    } else {
-      debugPrint('Client not connected. Cannot send message.');
+      await _ttnApi!.sendData('v3/devices/down/push', payload);
       setState(() {
-        _deviceData = 'Client not connected. Cannot send message.';
+        _deviceData = 'Message sent: $prefixedMessage';
+      });
+    } catch (e) {
+      setState(() {
+        _deviceData = 'Error sending message: $e';
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _client?.disconnect();
-    super.dispose();
   }
 
   @override
@@ -311,15 +180,6 @@ Message sent:
               child: const Text('Send Message'),
             ),
             const SizedBox(height: 16),
-            if (_lastSentMessage.isNotEmpty) ...[
-              Text(
-                'Last Sent Message:',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text('Original: $_lastSentMessage'),
-              Text('Encoded (Hex): $_lastEncodedMessage'),
-              const SizedBox(height: 16),
-            ],
             _isLoading
                 ? const CircularProgressIndicator()
                 : Text(
