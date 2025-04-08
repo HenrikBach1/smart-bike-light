@@ -73,33 +73,40 @@ class TestPageState extends State<TestPage> {
     setState(() {
       _isLoading = true;
       _deviceData = 'Connecting to MQTT broker...';
+      debugPrint('UI State: Loading started. Connecting to MQTT broker...');
     });
 
     try {
       final applicationId = 'smart-bike-light-henrikbach1'; // Replace with your application ID
+      debugPrint('Attempting to connect to MQTT with Application ID: $applicationId and Device EUI: $devEui');
       await _ttnApi!.connectToMqtt(applicationId, devEui, (payload) {
-        debugPrint('Raw payload received: $payload'); // Log raw payload
+        debugPrint('Raw payload received: $payload');
         try {
           // Parse the payload as JSON
           final data = jsonDecode(payload);
-          debugPrint('Parsed data: $data'); // Log parsed data
+          debugPrint('Parsed data: $data');
           setState(() {
             _deviceData = 'Received payload: $data';
+            debugPrint('UI State: Payload displayed on UI.');
           });
         } catch (e) {
-          debugPrint('Error parsing payload: $e'); // Log parsing errors
+          debugPrint('Error parsing payload: $e');
           setState(() {
             _deviceData = 'Error parsing payload: $e';
+            debugPrint('UI State: Error displayed on UI.');
           });
         }
       });
     } catch (e) {
+      debugPrint('Error connecting to MQTT: $e');
       setState(() {
         _deviceData = 'Error connecting to MQTT: $e';
+        debugPrint('UI State: Error displayed on UI.');
       });
     } finally {
       setState(() {
         _isLoading = false;
+        debugPrint('UI State: Loading finished.');
       });
     }
   }
@@ -108,6 +115,7 @@ class TestPageState extends State<TestPage> {
     try {
       final hexPrefix = _hexPrefixController.text.trim();
       final prefixedMessage = hexPrefix.isNotEmpty ? '$hexPrefix$message' : message;
+      debugPrint('Preparing to send message: $prefixedMessage');
       final payload = {
         "downlinks": [
           {
@@ -118,13 +126,18 @@ class TestPageState extends State<TestPage> {
         ]
       };
 
+      debugPrint('Sending downlink payload: $payload');
       await _ttnApi!.sendData('v3/devices/down/push', payload);
+      debugPrint('Downlink message sent successfully.');
       setState(() {
         _deviceData = 'Message sent: $prefixedMessage';
+        debugPrint('UI State: Message sent confirmation displayed.');
       });
     } catch (e) {
+      debugPrint('Error sending message: $e');
       setState(() {
         _deviceData = 'Error sending message: $e';
+        debugPrint('UI State: Error displayed on UI.');
       });
     }
   }

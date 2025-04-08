@@ -79,13 +79,15 @@ class TTNApi {
       client.subscribe(specificTopic, MqttQos.atLeastOnce);
 
       client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
+        debugPrint('Message received from broker.');
         final MqttPublishMessage message = messages[0].payload as MqttPublishMessage;
         final payload = MqttPublishPayload.bytesToStringAsString(message.payload.message);
-        debugPrint('Raw message received on topic ${messages[0].topic}: $payload'); // Log raw message
+        debugPrint('Raw message received on topic ${messages[0].topic}: $payload');
         try {
+          debugPrint('Passing payload to onMessage callback...');
           onMessage(payload);
         } catch (e) {
-          debugPrint('Error in onMessage callback: $e'); // Log callback errors
+          debugPrint('Error in onMessage callback: $e');
         }
       });
 
@@ -100,6 +102,10 @@ class TTNApi {
       client.onDisconnected = () {
         debugPrint('Disconnected from MQTT broker.');
       };
+
+      client.onUnsubscribed = (String? topic) {
+        debugPrint('Unsubscribed from topic: $topic');
+      };
     } catch (e) {
       debugPrint('MQTT connection error: $e');
       throw Exception('MQTT connection error: $e');
@@ -112,9 +118,11 @@ class TTNApi {
     builder.addString(payload);
 
     try {
+      debugPrint('Preparing to send message to topic $topic: $payload');
       client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
-      debugPrint('Message sent to topic $topic: $payload');
+      debugPrint('Message successfully sent to topic $topic.');
     } catch (e) {
+      debugPrint('Error sending MQTT message: $e');
       throw Exception('Error sending MQTT message: $e');
     }
   }
