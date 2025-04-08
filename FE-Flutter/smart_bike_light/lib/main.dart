@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:smart_bike_light/api/ttn_api.dart'; // Import TTN API module
-import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -58,86 +57,78 @@ class TestPageState extends State<TestPage> {
   final TextEditingController _hexPrefixController = TextEditingController();
   String _deviceData = '';
   bool _isLoading = false;
-  TTNApi? _ttnApi; // Use TTNApi for API interactions
+  late final TTNApi _ttnApi; // Use TTNApi for API interactions
 
   @override
   void initState() {
     super.initState();
-    _ttnApi = TTNApi(
-      baseUrl: 'https://eu1.cloud.thethings.network',
-      apiKey: 'NNSXS.2RRIRHET3ST3AKV7YMQKLQNPWAYDGME5B6ILBHA.EZUBU7VTBNBHP4J45MZYX6674P6SUTTO2Z4YJ2D6CEMFFEYS3B4Q',
-    );
+    _ttnApi = TTNApi.createDefault(); // Use the factory method to initialize TTNApi
   }
 
-  Future<void> connectToMqtt(String devEui) async {
+  Future<void> receiveMessages() async {
+    final devEui = _devEuiController.text.trim();
+    if (devEui.isEmpty) {
+      setState(() {
+        _deviceData = 'Error: DevEUI cannot be empty.';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
-      _deviceData = 'Connecting to MQTT broker...';
-      debugPrint('UI State: Loading started. Connecting to MQTT broker...');
+      _deviceData = 'Receiving messages...';
     });
 
     try {
-      final applicationId = 'smart-bike-light-henrikbach1'; // Replace with your application ID
-      debugPrint('Attempting to connect to MQTT with Application ID: $applicationId and Device EUI: $devEui');
-      await _ttnApi!.connectToMqtt(applicationId, devEui, (payload) {
-        debugPrint('Raw payload received: $payload');
-        try {
-          // Parse the payload as JSON
-          final data = jsonDecode(payload);
-          debugPrint('Parsed data: $data');
-          setState(() {
-            _deviceData = 'Received payload: $data';
-            debugPrint('UI State: Payload displayed on UI.');
-          });
-        } catch (e) {
-          debugPrint('Error parsing payload: $e');
-          setState(() {
-            _deviceData = 'Error parsing payload: $e';
-            debugPrint('UI State: Error displayed on UI.');
-          });
-        }
+      await _ttnApi.receiveMessage(devEui, (decodedPayload, deviceId) {
+        setState(() {
+          _deviceData = '''
+Received payload:
+- Device ID: $deviceId
+- Decoded Payload: $decodedPayload
+''';
+        });
       });
     } catch (e) {
-      debugPrint('Error connecting to MQTT: $e');
       setState(() {
-        _deviceData = 'Error connecting to MQTT: $e';
-        debugPrint('UI State: Error displayed on UI.');
+        _deviceData = 'Error receiving messages: $e';
       });
     } finally {
       setState(() {
         _isLoading = false;
-        debugPrint('UI State: Loading finished.');
       });
     }
   }
 
-  Future<void> sendMessage(String message) async {
-    try {
-      final hexPrefix = _hexPrefixController.text.trim();
-      final prefixedMessage = hexPrefix.isNotEmpty ? '$hexPrefix$message' : message;
-      debugPrint('Preparing to send message: $prefixedMessage');
-      final payload = {
-        "downlinks": [
-          {
-            "f_port": 1,
-            "frm_payload": base64.encode(utf8.encode(prefixedMessage)),
-            "confirmed": false,
-          }
-        ]
-      };
+  Future<void> sendMessage() async {
+    final hexPrefix = _hexPrefixController.text.trim();
+    final devEui = _devEuiController.text.trim();
+    final message = _messageController.text.trim();
 
-      debugPrint('Sending downlink payload: $payload');
-      await _ttnApi!.sendData('v3/devices/down/push', payload);
-      debugPrint('Downlink message sent successfully.');
+    if (devEui.isEmpty || message.isEmpty) {
       setState(() {
-        _deviceData = 'Message sent: $prefixedMessage';
-        debugPrint('UI State: Message sent confirmation displayed.');
+        _deviceData = 'Error: DevEUI and message cannot be empty.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _deviceData = 'Sending message...';
+    });
+
+    try {
+      await _ttnApi.sendMessage(devEui, hexPrefix, message);
+      setState(() {
+        _deviceData = 'Message sent successfully.';
       });
     } catch (e) {
-      debugPrint('Error sending message: $e');
       setState(() {
         _deviceData = 'Error sending message: $e';
-        debugPrint('UI State: Error displayed on UI.');
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
       });
     }
   }
@@ -158,13 +149,8 @@ class TestPageState extends State<TestPage> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () {
-                final devEui = _devEuiController.text.trim();
-                if (devEui.isNotEmpty) {
-                  connectToMqtt(devEui);
-                }
-              },
-              child: const Text('Connect and Fetch Data'),
+              onPressed: receiveMessages,
+              child: const Text('Receive Messages'),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -184,12 +170,7 @@ class TestPageState extends State<TestPage> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () {
-                final message = _messageController.text.trim();
-                if (message.isNotEmpty) {
-                  sendMessage(message);
-                }
-              },
+              onPressed: sendMessage,
               child: const Text('Send Message'),
             ),
             const SizedBox(height: 16),
