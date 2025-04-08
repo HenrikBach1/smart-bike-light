@@ -23,3 +23,5 @@ FE-Kotlin-MP/gradle-8.3-bin.zip
 
 obsoleted/*
 **/*obsoleted*
+**/typescript*
+**/*orig*

@@ -29,6 +29,18 @@ Installing Flutter on Windows, macOS, and Linux follows a similar process, with 
 1. Install Android Studio – Required for Android development.
 1. Set up an editor – VS Code or Android Studio are good choices.
 
+## Build a debugable Flutter app to an Emulator
+
+Optional: To build the Flutter app:
+```bash
+flutter build apk --debug
+```
+
+If you suspect something is complete wrong with version, etc, do a clean of the build environment:
+```bash
+flutter clean
+```
+
 ## Debug the Flutter app on an Emulator
 
 1. Using CLI (emulator tool):

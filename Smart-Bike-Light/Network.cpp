@@ -22,7 +22,10 @@ void initialize_LoRaWAN() {
     mySerial.setRxBufferSize(1024);          // Set receive buffer size to 1024 bytes
     mySerial.begin(57600, SERIAL_8N1, RX, TX); // Initialize UART communication
     mySerial.setTimeout(1000);              // Set timeout to 1000ms
+    mySerial.println("Serial initialized.");
+
     initialize_module_rn2483_LoRa();
+    mySerial.println("LoRa module initialized.");
 }
 
 void initialize_module_rn2483_LoRa() {
