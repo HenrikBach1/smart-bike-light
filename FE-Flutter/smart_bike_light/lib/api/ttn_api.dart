@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
@@ -48,11 +49,18 @@ class TTNApi {
 
   String? _lastReceivedDeviceId; // Store the last received device ID
 
+  Future<Map<String, double>> computeDeviceLocation(String devEui, List<Map<String, dynamic>> gatewaysData) async {
+    if (gatewaysData.isEmpty) {
+      throw Exception('No gateway data available for location computation.');
+    }
+
+    return Trilateration.calculatePosition(gatewaysData);
+  }
+
   // Public method to receive messages
-  Future<void> receiveMessage(String devEui, Function(String, String, Map<String, dynamic>?) onMessageReceived) async {
+  Future<void> receiveMessage(String devEui, Function(String, String, Map<String, dynamic>?, Map<String, double>?) onMessageReceived) async {
     await _connectToMqtt(devEui, (filteredPayload, deviceId) async {
       try {
-        // Parse the filtered payload as JSON
         final data = jsonDecode(filteredPayload);
         final uplinkMessage = data['uplink_message'];
         final frmPayload = uplinkMessage?['frm_payload'];
@@ -60,32 +68,32 @@ class TTNApi {
             ? utf8.decode(base64.decode(frmPayload))
             : 'No payload available';
 
-        debugPrint('Decoded payload: $decodedPayload'); // Log decoded payload
+        final rxMetadataList = uplinkMessage?['rx_metadata'] ?? [];
+        List<Map<String, dynamic>> gatewaysData = [];
 
-        // Extract gateway information from rx_metadata
-        final rxMetadata = uplinkMessage?['rx_metadata']?[0];
-        final gatewayId = rxMetadata?['gateway_ids']?['gateway_id'];
-        final location = rxMetadata?['location'];
+        for (var metadata in rxMetadataList) {
+          final gatewayId = metadata['gateway_ids']?['gateway_id'];
+          final location = metadata['location'];
+          final rssi = metadata['rssi'] ?? 0;
 
-        Map<String, dynamic>? gatewayInfo;
-
-        if (gatewayId != null && location != null) {
-          gatewayInfo = {
-            'gateway_id': gatewayId,
-            'latitude': location['latitude'],
-            'longitude': location['longitude'],
-          };
-        } else {
-          debugPrint('Gateway information or location not found in the uplink message.');
+          if (gatewayId != null && location != null) {
+            gatewaysData.add({
+              'gateway_id': gatewayId,
+              'latitude': location['latitude'],
+              'longitude': location['longitude'],
+              'rssi': rssi,
+            });
+          }
         }
 
-        // Store the deviceId for future use
-        _lastReceivedDeviceId = deviceId;
+        Map<String, double>? devicePosition;
+        if (gatewaysData.isNotEmpty) {
+          devicePosition = await computeDeviceLocation(devEui, gatewaysData);
+        }
 
-        // Pass the decoded payload, device ID, and gateway information to the callback
-        onMessageReceived(decodedPayload, deviceId, gatewayInfo);
+        onMessageReceived(decodedPayload, deviceId, null, devicePosition);
       } catch (e) {
-        debugPrint('Error parsing filtered payload: $e'); // Log parsing errors
+        debugPrint('Error parsing filtered payload: $e');
       }
     });
   }
@@ -248,5 +256,68 @@ class TTNApi {
       debugPrint('MQTT connection error: $e');
       throw Exception('MQTT connection error: $e');
     }
+  }
+}
+
+class Trilateration {
+  static const double _pathLossExponent = 2.5; // Typical value for indoor environments
+  static const int _txPower = -59; // Calibrated transmit power at 1 meter in dBm
+
+  // Convert RSSI to estimated distance in meters
+  static double rssiToDistance(int rssi) {
+    // Log-distance path loss model: distance = 10^((txPower - RSSI)/(10 * n))
+    // where n is the path loss exponent (typically 2-4)
+    return pow(10, (_txPower - rssi) / (10 * _pathLossExponent)).toDouble();
+  }
+
+  // Calculate device position using RSSI-based trilateration
+  static Map<String, double> calculatePosition(List<Map<String, dynamic>> gatewaysData) {
+    if (gatewaysData.isEmpty) {
+      throw Exception('No gateway data available for trilateration.');
+    }
+
+    if (gatewaysData.length == 1) {
+      // If only one gateway is available, estimate position based on RSSI
+      final gateway = gatewaysData.first;
+      final double distance = rssiToDistance(gateway['rssi']);
+      debugPrint('Estimated distance from gateway: $distance meters');
+      
+      // Return the gateway's location as an approximation
+      return {
+        'latitude': gateway['latitude'],
+        'longitude': gateway['longitude'],
+        'accuracy': distance, // Include accuracy estimate
+      };
+    }
+
+    // For multiple gateways, weighted centroid method
+    // Use RSSI values as weights for position estimation
+    double totalWeight = 0;
+    double weightedLatitude = 0;
+    double weightedLongitude = 0;
+
+    for (var gateway in gatewaysData) {
+      // Convert RSSI to a weight (stronger signal = higher weight)
+      final weight = pow(10, (gateway['rssi'] / 20)).toDouble(); // Higher RSSI = more weight
+      weightedLatitude += gateway['latitude'] * weight;
+      weightedLongitude += gateway['longitude'] * weight;
+      totalWeight += weight;
+    }
+
+    if (totalWeight > 0) {
+      return {
+        'latitude': weightedLatitude / totalWeight,
+        'longitude': weightedLongitude / totalWeight,
+        'accuracy': gatewaysData.length > 2 ? 50.0 : 150.0, // Rough accuracy estimate
+      };
+    }
+
+    // Fallback to simple average if weights are problematic, like if only one gateway present
+    debugPrint('No valid weights found, falling back to average position.');
+    return {
+      'latitude': gatewaysData.map((g) => g['latitude']).reduce((a, b) => a + b) / gatewaysData.length,
+      'longitude': gatewaysData.map((g) => g['longitude']).reduce((a, b) => a + b) / gatewaysData.length,
+      'accuracy': 200.0, // Low accuracy for fallback method
+    };
   }
 }
