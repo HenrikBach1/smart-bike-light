@@ -31,8 +31,14 @@ class TTNApi {
       final prefixedMessage = hexPrefix.isNotEmpty ? '$hexPrefix$message' : message;
       final payloadData = _preparePayload(hexPrefix, message); // Encode the payload
 
+      // Dynamically extract deviceId from the received message
+      final deviceId = _lastReceivedDeviceId;
+      if (deviceId == null) {
+        throw Exception('Device ID not available. Ensure a message has been received before sending.');
+      }
+
       debugPrint('Preparing to send payload data: $prefixedMessage'); // Log the payload data
-      await _sendDownlinkMessage(devEui, payloadData); // Send the message
+      await _sendDownlinkMessage(deviceId, payloadData); // Send the message
       debugPrint('Downlink message sent successfully.');
     } catch (e) {
       debugPrint('Error sending message: $e');
@@ -40,9 +46,11 @@ class TTNApi {
     }
   }
 
+  String? _lastReceivedDeviceId; // Store the last received device ID
+
   // Public method to receive messages
-  Future<void> receiveMessage(String devEui, Function(String, String) onMessageReceived) async {
-    await _connectToMqtt(devEui, (filteredPayload, deviceId) {
+  Future<void> receiveMessage(String devEui, Function(String, String, Map<String, dynamic>?) onMessageReceived) async {
+    await _connectToMqtt(devEui, (filteredPayload, deviceId) async {
       try {
         // Parse the filtered payload as JSON
         final data = jsonDecode(filteredPayload);
@@ -53,20 +61,74 @@ class TTNApi {
             : 'No payload available';
 
         debugPrint('Decoded payload: $decodedPayload'); // Log decoded payload
-        onMessageReceived(decodedPayload, deviceId); // Pass the decoded payload and device ID to the callback
+
+        // Extract gateway information from rx_metadata
+        final rxMetadata = uplinkMessage?['rx_metadata']?[0];
+        final gatewayId = rxMetadata?['gateway_ids']?['gateway_id'];
+        final location = rxMetadata?['location'];
+
+        Map<String, dynamic>? gatewayInfo;
+
+        if (gatewayId != null && location != null) {
+          gatewayInfo = {
+            'gateway_id': gatewayId,
+            'latitude': location['latitude'],
+            'longitude': location['longitude'],
+          };
+        } else {
+          debugPrint('Gateway information or location not found in the uplink message.');
+        }
+
+        // Store the deviceId for future use
+        _lastReceivedDeviceId = deviceId;
+
+        // Pass the decoded payload, device ID, and gateway information to the callback
+        onMessageReceived(decodedPayload, deviceId, gatewayInfo);
       } catch (e) {
         debugPrint('Error parsing filtered payload: $e'); // Log parsing errors
       }
     });
   }
 
-  // Private method to send a downlink message
-  Future<void> _sendDownlinkMessage(String devEui, String payloadData) async {
-    final deviceId = _mapDevEuiToDeviceId(devEui); // Map devEUI to device_id
-    if (deviceId == 'unknown-device') {
-      throw Exception('Device ID not found for DevEUI: $devEui');
-    }
+  // Public method to query gateway coordinates
+  Future<Map<String, dynamic>> queryGatewayCoordinates(String gatewayId) async {
+    final endpoint = '$baseUrl/api/v3/gateways/$gatewayId';
+    final url = Uri.parse(endpoint);
 
+    try {
+      debugPrint('Querying gateway coordinates for Gateway ID: $gatewayId');
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final coordinates = data['location']?['latitude'] != null && data['location']?['longitude'] != null
+            ? {
+                'latitude': data['location']['latitude'],
+                'longitude': data['location']['longitude'],
+                'gateway_id': gatewayId, // Include gateway_id in the returned data
+              }
+            : throw Exception('Coordinates not found for Gateway ID: $gatewayId');
+
+        debugPrint('Gateway coordinates retrieved: $coordinates');
+        return coordinates;
+      } else {
+        debugPrint('Failed to query gateway coordinates: ${response.body}');
+        throw Exception('Failed to query gateway coordinates: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error querying gateway coordinates: $e');
+      throw Exception('Error querying gateway coordinates: $e');
+    }
+  }
+
+  // Private method to send a downlink message
+  Future<void> _sendDownlinkMessage(String deviceId, String payloadData) async {
     final endpoint = '$baseUrl/api/v3/as/applications/$applicationId/devices/$deviceId/down/push';
     final payload = {
       "downlinks": [
@@ -80,17 +142,6 @@ class TTNApi {
 
     debugPrint('Sending downlink payload to endpoint: $endpoint'); // Log the endpoint
     await _sendData(endpoint, payload);
-  }
-
-  // Private method to map devEUI to device_id
-  String _mapDevEuiToDeviceId(String devEui) {
-    const devEuiToDeviceIdMap = {
-      '0004A30B010458CD': 'iot-course-device-1',
-      '0004A30B010458CE': 'iot-course-device-2',
-      // Add more mappings as needed
-    };
-
-    return devEuiToDeviceIdMap[devEui] ?? 'unknown-device';
   }
 
   // Private method to send data to TTN

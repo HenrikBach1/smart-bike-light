@@ -80,12 +80,19 @@ class TestPageState extends State<TestPage> {
     });
 
     try {
-      await _ttnApi.receiveMessage(devEui, (decodedPayload, deviceId) {
+      await _ttnApi.receiveMessage(devEui, (decodedPayload, deviceId, gatewayCoordinates) {
+        final gatewayId = gatewayCoordinates != null ? gatewayCoordinates['gateway_id'] : 'Unknown';
+        final gatewayInfo = gatewayCoordinates != null
+            ? 'Lat: ${gatewayCoordinates['latitude']}, Lon: ${gatewayCoordinates['longitude']}'
+            : 'Not available';
+
         setState(() {
           _deviceData = '''
 Received payload:
 - Device ID: $deviceId
 - Decoded Payload: $decodedPayload
+- Gateway ID: $gatewayId
+- Gateway Coordinates: $gatewayInfo
 ''';
         });
       });
