@@ -15,4 +15,11 @@ typedef enum {
     STATUS_ERROR = -1
 } Status;
 
+typedef enum {
+  STORAGE,
+  PARK,
+  ACTIVE
+} Mode;
+
+
 #endif // GLOBALS_H
