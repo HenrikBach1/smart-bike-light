@@ -228,6 +228,7 @@ class TTNApi {
 
           if (messageDevEui == devEui) {
             debugPrint('Message matches DevEUI: $messageDevEui'); // Log matching DevEUI
+            _lastReceivedDeviceId = deviceId; // Store the device ID for downlink messages
             onFilteredMessage(payload, deviceId); // Pass the filtered message and device_id to the callback
           } else {
             debugPrint('Message ignored. DevEUI does not match: $messageDevEui');

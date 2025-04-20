@@ -140,9 +140,9 @@ void hexDecode(const String& hexInput, char* output) {
 }
 
 TX_RETURN_TYPE transeive(Module module, Status status, const char* data) {
-    // Convert the module to a one-byte hex prefix
+    // Convert both the module and status to a two-byte hex prefix
     char prefixedData[256]; // Adjust size as needed
-    snprintf(prefixedData, sizeof(prefixedData), "%02X%s", (uint8_t)module, data);
+    snprintf(prefixedData, sizeof(prefixedData), "%02X%02X%s", (uint8_t)module, (uint8_t)status, data);
 
     // Print the prefixed data for debugging
     Serial.print("DevEUI: ");
@@ -153,14 +153,6 @@ TX_RETURN_TYPE transeive(Module module, Status status, const char* data) {
     // Send the prefixed data
     TX_RETURN_TYPE response = myLora.tx(prefixedData);
     message = myLora.getRx();
-
-    //HB: // Print the message as hex values to the Serial Monitor
-    // Serial.print("Received message (hex): ");
-    // for (size_t i = 0; i < message.length(); i++) {
-    //     Serial.print((uint8_t)message[i], HEX);
-    //     Serial.print(" ");
-    // }
-    // Serial.println();
 
     // Decode the hexadecimal string to ASCII
     char asciiMessage[256]; // Adjust size as needed
