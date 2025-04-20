@@ -9,7 +9,9 @@
 #include "Globals.h" // Include (Pins.h) for LED_PIN, RST, RX, TX, and UART
 
 void setup() {
-  Serial.begin(115200); // Open serial communication
+  Serial.begin(115200);
+  Serial.println("Starting...");
+
   delay(200); // Wait for serial console to open
   Serial.println("Startup");
 
@@ -20,8 +22,8 @@ void setup() {
 void loop() {
   led_on();
 
-  Serial.println("TXing");
-  TX_RETURN_TYPE response = transeive(MODULE_NONE, STATUS_OK, "!"); // Send data and receive waiting data
+  Serial.println("TXing for devEUI: " + getDevEUI());
+  TX_RETURN_TYPE response = tranceive(MODULE_NONE, STATUS_OK, "!"); // Send data and receive waiting data
   if (response == TX_SUCCESS) {
       Serial.println("Message sent!");
   } else if (response == TX_FAIL) {
@@ -35,6 +37,12 @@ void loop() {
     message = "";
     Serial.println("Reset message: " + message);
   }
+
+  // estimateLocation(getRSSI());
+  estimateLocationFromMetadata(rawMessage);
+
+  // Wait before sending the next message
+  delay(1000);
 
   led_off();
 }
