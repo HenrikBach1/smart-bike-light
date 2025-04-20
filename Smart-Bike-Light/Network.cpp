@@ -140,6 +140,16 @@ void hexDecode(const String& hexInput, char* output) {
 }
 
 TX_RETURN_TYPE transeive(Module module, Status status, const char* data) {
+    // Check if we are connected to TTN, if not try to join
+    if (!is_joined_TTN()) {
+        Serial.println("Not connected to TTN, attempting to join...");
+        if (!join_TTN()) {
+            Serial.println("Failed to join TTN, cannot send data");
+            return TX_FAIL;  // Return failure if we can't join TTN
+        }
+        Serial.println("Successfully joined TTN");
+    }
+
     // Convert both the module and status to a two-byte hex prefix
     char prefixedData[256]; // Adjust size as needed
     snprintf(prefixedData, sizeof(prefixedData), "%02X%02X%s", (uint8_t)module, (uint8_t)status, data);

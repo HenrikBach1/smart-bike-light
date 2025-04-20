@@ -27,13 +27,8 @@ void setup() {
 void loop() {
   led_on();
 
-  // Only attempt to join if not already joined
-  // This check is important for wake-up scenarios
-  if (!is_joined_TTN()) {
-    Serial.println("Not joined to TTN, attempting to join...");
-    join_TTN();
-  }
-
+  // Connection to TTN is now handled automatically in transeive function
+  
   Serial.println("TXing");
   TX_RETURN_TYPE response = transeive(MODULE_NONE, STATUS_OK, "!"); // Send data and receive waiting data
   if (response == TX_SUCCESS) {
