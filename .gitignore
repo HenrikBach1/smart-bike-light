@@ -1,6 +1,7 @@
 **/.idea/**
 **/build*/**
-**/res/**
+# Don't ignore Android resources, but ignore other res directories
+# **/res/**
 **/executionHistory/**
 **/checksums/**
 **/dependencies-accessors/**
