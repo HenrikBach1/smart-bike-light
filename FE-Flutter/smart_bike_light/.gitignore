@@ -52,8 +52,12 @@ build/
 # Dart analysis options
 analysis_options.yaml
 
-# Ignore AndroidManifest for all build variants
-android/app/src/*/AndroidManifest.xml
+# Ignore AndroidManifest for non-main build variants, but keep the main one
+android/app/src/debug/AndroidManifest.xml
+android/app/src/profile/AndroidManifest.xml
+android/app/src/release/AndroidManifest.xml
+# DO NOT ignore the main AndroidManifest.xml
+# android/app/src/main/AndroidManifest.xml
 
 # Xcode workspace settings
 ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
