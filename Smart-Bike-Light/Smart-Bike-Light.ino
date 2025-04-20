@@ -15,10 +15,24 @@ void setup() {
 
   initialize_LED();
   initialize_LoRaWAN();
+  
+  // Join TTN once during setup
+  if (join_TTN()) {
+    Serial.println("TTN join successful in setup");
+  } else {
+    Serial.println("TTN join failed in setup, will retry in loop");
+  }
 }
 
 void loop() {
   led_on();
+
+  // Only attempt to join if not already joined
+  // This check is important for wake-up scenarios
+  if (!is_joined_TTN()) {
+    Serial.println("Not joined to TTN, attempting to join...");
+    join_TTN();
+  }
 
   Serial.println("TXing");
   TX_RETURN_TYPE response = transeive(MODULE_NONE, STATUS_OK, "!"); // Send data and receive waiting data

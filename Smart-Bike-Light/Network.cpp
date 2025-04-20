@@ -5,6 +5,12 @@
 #include <Arduino.h> // Include Arduino library for Base64 decoding
 #include <base64.h> // Include Base64 library for decoding
 
+// Configuration constants
+#define JOIN_MAX_RETRIES 5     // Maximum number of join attempts
+#define JOIN_RETRIES_DELAY 60000 // Delay between retries in milliseconds (60 seconds)
+#define APP_EUI "0000000000000000"  // Application EUI for TTN
+#define APP_KEY "5EA67FF029810B31D0805D4749AA682E"  // Application Key for TTN
+
 HardwareSerial mySerial(UART); // Initialize UART1
 rn2xx3 myLora(mySerial);       // Initialize LoRa instance
 
@@ -13,7 +19,8 @@ String message = "";       // Received message
 
 //Module wide variables for :
 namespace {
-    String devEUI = "";        // DevEUI/HWEUI
+    String _devEUI = "";         // DevEUI/HWEUI
+    bool _is_joined_TTN = false; // Track TTN join status
 }
 
 void initialize_LoRaWAN() {
@@ -28,6 +35,57 @@ void initialize_LoRaWAN() {
     mySerial.println("LoRa module initialized.");
 }
 
+bool join_TTN() {
+    if (_is_joined_TTN) {
+        return true;
+    }
+
+    // myLora.sendRawCommand("mac set deveui " + devEUI); // Set DevEUI explicitly
+    // OTAA: initOTAA(String AppEUI, String AppKey);
+    _is_joined_TTN = myLora.initOTAA(APP_EUI, APP_KEY);
+    
+    int retries = 0;
+    
+    while (!_is_joined_TTN && retries < JOIN_MAX_RETRIES) {
+        Serial.println("Join failed. Retrying...");
+        delay(JOIN_RETRIES_DELAY);  // Wait between retry attempts
+        _is_joined_TTN = myLora.initOTAA(APP_EUI, APP_KEY);
+        retries++;
+    }
+    
+    if (_is_joined_TTN) {
+        Serial.println("Successfully joined!");
+    } else {
+        Serial.println("Failed to join after maximum retry attempts.");
+    }
+    
+    return _is_joined_TTN;
+}
+
+bool is_joined_TTN() {
+    return _is_joined_TTN;
+}
+
+bool leave_TTN() {
+    if (!_is_joined_TTN) {
+        // Already disconnected, nothing to do
+        Serial.println("Already disconnected from TTN");
+        return true;
+    }
+    
+    // Send the command to disconnect from the network
+    String response = myLora.sendRawCommand("mac reset");
+    
+    if (response == "ok") {
+        _is_joined_TTN = false;
+        Serial.println("Successfully disconnected from TTN");
+        return true;
+    } else {
+        Serial.println("Failed to disconnect from TTN. Response: " + response);
+        return false;
+    }
+}
+
 void initialize_module_rn2483_LoRa() {
     // Reset RN2xx3
     pinMode(RST, OUTPUT); // Use RST from Pins.h
@@ -39,27 +97,15 @@ void initialize_module_rn2483_LoRa() {
 
     // Check communication with the radio
     myLora.sendRawCommand("mac reset");
-    devEUI = myLora.hweui();
-    while (devEUI.length() != 16) {
+    _devEUI = myLora.hweui();
+    while (_devEUI.length() != 16) {
         Serial.println("Communication with RN2xx3 unsuccessful.");
         delay(10000);
-        devEUI = myLora.hweui();
+        _devEUI = myLora.hweui();
     }
 
-    Serial.println("DevEUI: " + devEUI);
+    Serial.println("DevEUI: " + _devEUI);
     Serial.println("Firmware: " + myLora.sysver());
-
-    //myLora.sendRawCommand("mac set deveui " + devEUI); // Set DevEUI explicitly
-    //OTAA: initOTAA(String AppEUI, String AppKey);
-    const char* appEUI = "0000000000000000";
-    const char* appKey = "5EA67FF029810B31D0805D4749AA682E";
-    bool join_result = myLora.initOTAA(appEUI, appKey);
-    while (!join_result) {
-        Serial.println("Join failed. Retrying...");
-        delay(60000);
-        join_result = myLora.init();
-    }
-    Serial.println("Successfully joined!");
 }
 
 // Custom Base64 decoding function
@@ -99,7 +145,9 @@ TX_RETURN_TYPE transeive(Module module, Status status, const char* data) {
     snprintf(prefixedData, sizeof(prefixedData), "%02X%s", (uint8_t)module, data);
 
     // Print the prefixed data for debugging
-    Serial.print("ASCII message sent: ");
+    Serial.print("DevEUI: ");
+    Serial.println(_devEUI);
+    Serial.print("Sending message: ");
     Serial.println(prefixedData);
 
     // Send the prefixed data

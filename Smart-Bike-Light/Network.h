@@ -16,7 +16,10 @@ extern String message;
 
 void initialize_globals();
 void initialize_LoRaWAN();
+bool join_TTN();
+bool leave_TTN();
 void initialize_module_rn2483_LoRa();
 TX_RETURN_TYPE transeive(Module module, Status status, const char* data);
+bool is_joined_TTN();
 
 #endif // NETWORK_H
