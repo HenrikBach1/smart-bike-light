@@ -1,7 +1,7 @@
-//file=Network.cpp
+//file=LoRaWAN.cpp
 
 #include "LedControl.h"
-#include "Network.h" // Include Network.h (which includes Pins.h)
+#include "LoRaWAN.h" // Include Network.h (which includes Pins.h)
 #include <Arduino.h> // Include Arduino library for Base64 decoding
 #include <base64.h> // Include Base64 library for decoding
 
