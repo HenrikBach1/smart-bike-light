@@ -1,5 +1,9 @@
 #include <Arduino.h>
+#include <ESP32.h>
 #include "LedBrightnessAdjust.h"
+
+const int pwmFreq = 5000; // 
+const int pwmResolution = 8; // 8-bit → 0–255
 
 void adjustBrightness() {
   int input = Serial.parseInt();
