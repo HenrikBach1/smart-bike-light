@@ -1,7 +1,8 @@
-//file=Network.cpp
+//file=CustomLoRa.cpp
 
 #include "LedControl.h"
-#include "Network.h" // Include Network.h (which includes Pins.h)
+#include "CustomLoRa.h" // Include CustomLoRa.h (which includes Pins.h)
+#include "Pins.h" // Explicitly include Pins.h for UART and RST definitions
 #include <Arduino.h> // Include Arduino library for Base64 decoding
 #include <base64.h> // Include Base64 library for decoding
 
@@ -139,7 +140,7 @@ void hexDecode(const String& hexInput, char* output) {
     output[length / 2] = '\0'; // Null-terminate the decoded string
 }
 
-TX_RETURN_TYPE transeive(Module module, Status status, const char* data) {
+TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
     // Check if we are connected to TTN, if not try to join
     if (!is_joined_TTN()) {
         Serial.println("Not connected to TTN, attempting to join...");
