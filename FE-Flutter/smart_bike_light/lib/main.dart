@@ -80,27 +80,47 @@ class TestPageState extends State<TestPage> {
     });
 
     try {
-      await _ttnApi.receiveMessage(devEui, (decodedPayload, deviceId, gatewayInfo, devicePosition) {
-        final gatewayId = gatewayInfo != null ? gatewayInfo['gateway_id'] : 'Unknown';
-        final gatewayCoords = gatewayInfo != null
-            ? 'Lat: ${gatewayInfo['latitude']}, Lon: ${gatewayInfo['longitude']}'
-            : 'Not available';
+      await _ttnApi.receiveMessage(devEui, (decodedPayload, deviceId, gatewaysInfo, devicePosition) {
+        // Format gateway information for multiple gateways
+        String gatewaysText = 'None detected';
+        
+        if (gatewaysInfo != null && gatewaysInfo.isNotEmpty) {
+          gatewaysText = '';
+          for (int i = 0; i < gatewaysInfo.length; i++) {
+            final gateway = gatewaysInfo[i];
+            final gatewayId = gateway['gateway_id'];
+            final latitude = gateway['latitude']?.toStringAsFixed(6) ?? 'N/A';
+            final longitude = gateway['longitude']?.toStringAsFixed(6) ?? 'N/A';
+            final rssi = gateway['rssi'];
+            
+            // Calculate approximate distance using the RSSI value
+            final distance = Trilateration.rssiToDistance(rssi).toStringAsFixed(2);
+            
+            gatewaysText += '''
+  Gateway ${i+1}:
+   - ID: $gatewayId
+   - Location: Lat: $latitude, Lon: $longitude
+   - RSSI: $rssi dBm
+   - Estimated Distance: $distance m
+''';
+          }
+        }
             
         // Format device position information with null checks
         final devicePositionText = devicePosition != null
-            ? 'Lat: ${devicePosition['latitude']?.toStringAsFixed(6) ?? 'N/A'}, '
-              'Lon: ${devicePosition['longitude']?.toStringAsFixed(6) ?? 'N/A'}, '
-              'Accuracy: ${devicePosition['accuracy']?.toStringAsFixed(1) ?? 'N/A'}m'
+            ? 'Lat: ${devicePosition['latitude']?.toStringAsFixed(6) ?? 'N/A'}, Lon: ${devicePosition['longitude']?.toStringAsFixed(6) ?? 'N/A'}, Accuracy: ${devicePosition['accuracy']?.toStringAsFixed(1) ?? 'N/A'} m'
             : 'Not available';
 
         setState(() {
           _deviceData = '''
-Received payload:
+DEVICE INFORMATION:
 - Device ID: $deviceId
 - Decoded Payload: $decodedPayload
-- Gateway ID: $gatewayId
-- Gateway Coordinates: $gatewayCoords
-- Estimated Device Position: $devicePositionText
+
+NETWORK INFORMATION:
+- Gateways (${gatewaysInfo?.length ?? 0}):
+$gatewaysText
+- Calculated Device Position: $devicePositionText
 ''';
         });
       });
