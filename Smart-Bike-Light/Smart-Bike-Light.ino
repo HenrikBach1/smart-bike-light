@@ -5,7 +5,7 @@
  */
 
 #include "LedControl.h"
-#include "Network.h"
+#include "LoRaWAN.h"
 #include "Globals.h" // Include (Pins.h) for LED_PIN, RST, RX, TX, and UART
 
 void setup() {
