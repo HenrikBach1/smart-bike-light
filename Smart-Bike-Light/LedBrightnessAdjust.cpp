@@ -1,3 +1,6 @@
+#include <Arduino.h>
+#include "LedBrightnessAdjust.h"
+
 void adjustBrightness() {
   int input = Serial.parseInt();
   if (input >= 0 && input <= 100) {
