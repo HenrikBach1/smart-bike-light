@@ -1,7 +1,7 @@
-//file=Network.h
+//file=LoRaWAN.h
 
-#ifndef NETWORK_H
-#define NETWORK_H
+#ifndef LORAWAN_H
+#define LORAWAN_H
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
@@ -22,4 +22,4 @@ void initialize_module_rn2483_LoRa();
 TX_RETURN_TYPE transeive(Module module, Status status, const char* data);
 bool is_joined_TTN();
 
-#endif // NETWORK_H
+#endif // LORAWAN_H
