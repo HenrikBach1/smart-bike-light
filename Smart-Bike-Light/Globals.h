@@ -22,4 +22,10 @@ typedef enum {
 } Mode;
 
 
+#define UART    1   // UART1
+#define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP_PARKED  60    // Wakeup interval in parked mode
+#define TIME_TO_SLEEP_STORAGE  -1  // Maybe we should not have timer on storage mode
+
+
 #endif // GLOBALS_H
