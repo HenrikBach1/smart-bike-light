@@ -2,6 +2,7 @@
 
 #include <Arduino.h> // Include Arduino library for digitalWrite and pinMode
 #include "LedControl.h"
+#include "Pins.h" // Explicitly include Pins.h for LED_PIN
 
 void initialize_LED() {
     pinMode(LED_PIN, OUTPUT); // Configure LED pin

@@ -16,8 +16,10 @@
 #define SDA             21  // I2C SDA pin
 #define SCL             22  // I2C SCL pin
 #define LORA_RESET      23  // GPIO for LoRa Reset
+#define RST             23  // Same as LORA_RESET for backward compatibility
 #define BAT_ADC_INPUT   36  // GPIO for Battery ADC input
 #define LDR_ADC_INPUT   39  // GPIO for LDR ADC input
+#define UART            1   // UART number (1 or 2) for ESP32
 
 
 #endif // PINS_H

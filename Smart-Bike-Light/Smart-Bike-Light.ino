@@ -5,7 +5,7 @@
  */
 
 #include "LedControl.h"
-#include "LoRaWAN.h"
+#include "CustomLoRa.h"
 #include "Globals.h" // Include (Pins.h) for LED_PIN, RST, RX, TX, and UART
 
 void setup() {
@@ -27,10 +27,10 @@ void setup() {
 void loop() {
   led_on();
 
-  // Connection to TTN is now handled automatically in transeive function
+  // Connection to TTN is now handled automatically in tranceive function
   
   Serial.println("TXing");
-  TX_RETURN_TYPE response = transeive(MODULE_NONE, STATUS_OK, "!"); // Send data and receive waiting data
+  TX_RETURN_TYPE response = tranceive(MODULE_NONE, STATUS_OK, "!"); // Send data and receive waiting data
   if (response == TX_SUCCESS) {
       Serial.println("Message sent!");
   } else if (response == TX_FAIL) {
