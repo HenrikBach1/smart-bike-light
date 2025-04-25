@@ -8,6 +8,9 @@
 #include "CustomLoRa.h"
 #include "Globals.h" // Include (Pins.h) for LED_PIN, RST, RX, TX, and UART
 
+// Define global application variables
+String message = ""; // Global message variable for LoRa communications
+
 void setup() {
   Serial.begin(115200); // Open serial communication
   delay(200); // Wait for serial console to open

@@ -1,6 +1,14 @@
 #include <Arduino.h>
 #include "LedBrightnessAdjust.h"
 
+/* This module's compilation is controlled by the ENABLE_LED_BRIGHTNESS flag in Globals.h
+ * When ENABLE_LED_BRIGHTNESS is set to 0, this implementation code is excluded from compilation
+ * When ENABLE_LED_BRIGHTNESS is set to 1, this implementation code is included in compilation
+ * Empty function stubs are provided in LedBrightnessAdjust.h when this module is disabled
+ */
+
+#if ENABLE_LED_BRIGHTNESS
+
 const int pwmFreq = 5000; // 
 const int pwmResolution = 8; // 8-bit → 0–255
 
@@ -28,3 +36,5 @@ void adjustBrightness() {
     Serial.println("Input must include 'AB' followed by a number.");
   }
 }
+
+#endif // ENABLE_LED_BRIGHTNESS

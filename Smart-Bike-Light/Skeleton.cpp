@@ -1,7 +1,13 @@
-
 // Skeleton.cpp
 #include "Skeleton.h"
 
+/* This module's compilation is controlled by the ENABLE_SKELETON flag in Globals.h
+ * When ENABLE_SKELETON is set to 0, this implementation code is excluded from compilation
+ * When ENABLE_SKELETON is set to 1, this implementation code is included in compilation
+ * Empty function stubs are provided in Skeleton.h when this module is disabled
+ */
+
+#if ENABLE_SKELETON // Only compile implementation if module is enabled
 
 unsigned long lastPrintTime = 0;
 const unsigned long printInterval = 5000;  // milliseconds
@@ -131,3 +137,5 @@ void timerWakeupRoutineFromPark() {
 
   goToDeepSleep(TIME_TO_SLEEP_PARKED, true);
 }
+
+#endif // ENABLE_SKELETON

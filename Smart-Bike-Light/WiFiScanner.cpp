@@ -2,6 +2,14 @@
 
 #include "WiFiScanner.h"
 
+/* This module's compilation is controlled by the ENABLE_WIFI_SCANNER flag in Globals.h
+ * When ENABLE_WIFI_SCANNER is set to 0, this implementation code is excluded from compilation
+ * When ENABLE_WIFI_SCANNER is set to 1, this implementation code is included in compilation
+ * Empty function stubs are provided in WiFiScanner.h when this module is disabled
+ */
+
+#if ENABLE_WIFI_SCANNER
+
 void initWiFiScanner() {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
@@ -57,3 +65,5 @@ int getTop3Networks(uint8_t macs[3][6], uint8_t rssis[3]) {
   WiFi.scanDelete();
   return count;
 }
+
+#endif

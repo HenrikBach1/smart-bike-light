@@ -3,12 +3,14 @@
 #define SKELETON_H
 
 #include <Arduino.h>
+#include "Globals.h"  // For ENABLE_SKELETON flag
+
+#if ENABLE_SKELETON // Only compile implementation if module is enabled in Globals.h
+
 #include <OneButton.h>
 #include <driver/rtc_io.h>
-
 #include "esp_sleep.h"
 #include "WiFiScanner.h"
-#include "Globals.h"
 
 
 extern unsigned long lastPrintTime;
@@ -41,5 +43,29 @@ void mpuWakeupRoutine();
 void timerWakeupRoutine();
 void timerWakeupRoutineFromStorage();
 void timerWakeupRoutineFromPark();
+
+#else
+
+// Empty function stubs when module is disabled
+inline void read_sensors() {}
+inline void print_info_interval() {}
+inline void tick_stuff() {}
+
+inline void handleClick1() {}
+inline void handleLong1() {}
+inline void handleClick2() {}
+inline void handleLong2() {}
+
+inline void initialize_physical_buttons() {}
+
+inline void goToDeepSleep(int sleepingTime, bool mpu_interrupt) {}
+
+inline void firstStartupRoutine() {}
+inline void mpuWakeupRoutine() {}
+inline void timerWakeupRoutine() {}
+inline void timerWakeupRoutineFromStorage() {}
+inline void timerWakeupRoutineFromPark() {}
+
+#endif // ENABLE_SKELETON
 
 #endif // SKELETON_H

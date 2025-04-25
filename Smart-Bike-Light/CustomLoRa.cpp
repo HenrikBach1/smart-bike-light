@@ -2,9 +2,16 @@
 
 #include "LedControl.h"
 #include "CustomLoRa.h" // Include CustomLoRa.h (which includes Pins.h)
-#include "Pins.h" // Explicitly include Pins.h for UART and RST definitions
 #include <Arduino.h> // Include Arduino library for Base64 decoding
 #include <base64.h> // Include Base64 library for decoding
+
+/* This module's compilation is controlled by the ENABLE_CUSTOM_LORA flag in Globals.h
+ * When ENABLE_CUSTOM_LORA is set to 0, this implementation code is excluded from compilation
+ * When ENABLE_CUSTOM_LORA is set to 1, this implementation code is included in compilation
+ * Empty function stubs are provided in CustomLoRa.h when this module is disabled
+ */
+
+#if ENABLE_CUSTOM_LORA
 
 // Configuration constants
 #define JOIN_MAX_RETRIES 5     // Maximum number of join attempts
@@ -14,9 +21,6 @@
 
 HardwareSerial mySerial(UART); // Initialize UART1
 rn2xx3 myLora(mySerial);       // Initialize LoRa instance
-
-//Global wide variables for :
-String message = "";       // Received message
 
 //Module wide variables for :
 namespace {
@@ -176,3 +180,5 @@ TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
     delay(2000); //TODO: HB: 1% duty cycle implemented in this way, for now. Or does the WAN implementation this for us?
     return response;
 }
+
+#endif // ENABLE_CUSTOM_LORA_MODULE

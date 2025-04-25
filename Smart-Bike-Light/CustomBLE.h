@@ -3,6 +3,11 @@
 #ifndef CUSTOMBLE_H
 #define CUSTOMBLE_H
 
+#include <Arduino.h>
+#include "Globals.h" // Include for module enable/disable flags
+
+#if ENABLE_BLE_MODULE
+
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEScan.h>
@@ -35,5 +40,19 @@ private:
     bool matchesUnlockService(BLEAdvertisedDevice& device);
 };
 
+#else
 
-#endif
+// Empty stub class when module is disabled
+class CustomBLE {
+public:
+    CustomBLE(const char*) {}
+    void begin() {}
+    void scan() {}
+    bool isUnlocked() const { return false; }
+    void lock() {}
+    void setRssiThreshold(int) {}
+};
+
+#endif // ENABLE_BLE_MODULE
+
+#endif // CUSTOMBLE_H
