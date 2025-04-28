@@ -55,8 +55,6 @@ class TestPageState extends State<TestPage> {
   final TextEditingController _devEuiController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _hexPrefixController = TextEditingController();
-  final TextEditingController _toModuleController = TextEditingController(); // New controller for to-module
-  final TextEditingController _dataController = TextEditingController(); // New controller for data
   String _deviceData = '';
   bool _isLoading = false;
   late final TTNApi _ttnApi; // Use TTNApi for API interactions
@@ -76,7 +74,7 @@ class TestPageState extends State<TestPage> {
       'fromModuleData': 'N/A',
     };
     
-    if (payload == null || payload.isEmpty) {
+    if (payload.isEmpty) {
       return result;
     }
     
@@ -159,7 +157,6 @@ DEVICE INFORMATION:
 NETWORK INFORMATION:
 - Gateways (${gatewaysInfo?.length ?? 0}):
 $gatewaysText
-
 - Calculated Device Position: $devicePositionText
 ''';
         });
