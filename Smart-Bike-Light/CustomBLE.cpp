@@ -1,5 +1,13 @@
 #include "CustomBLE.h"
 
+/* This module's compilation is controlled by the ENABLE_BLE_MODULE flag in Globals.h
+ * When ENABLE_BLE_MODULE is set to 0, this implementation code is excluded from compilation
+ * When ENABLE_BLE_MODULE is set to 1, this implementation code is included in compilation
+ * Empty function stubs are provided in CustomBLE.h when this module is disabled
+ */
+
+#if ENABLE_BLE_MODULE
+
 CustomBLE::CustomBLE(const char* targetServiceUUID)
   : pBLEScan(nullptr), unlockServiceUUID(BLEUUID(targetServiceUUID)), unlocked(false), rssiThreshold(-75) {}
 
@@ -65,3 +73,5 @@ void CustomBLE::AdvertisedDeviceCallbacks::onResult(BLEAdvertisedDevice advertis
         // Serial.println("Device too far away, ignoring without checking services.");
     }
 }
+
+#endif // ENABLE_BLE_MODULE

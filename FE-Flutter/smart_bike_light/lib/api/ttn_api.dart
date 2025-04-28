@@ -47,6 +47,37 @@ class TTNApi {
     }
   }
 
+  /// Sends a message in the format: <to-module>-<data>
+  /// 
+  /// This is a specialized version of sendMessage that formats the payload
+  /// according to the format: <to-module>-<data>
+  /// 
+  /// [toModule] - Identifier of the target module
+  /// [data] - The data to be sent to the module
+  /// [devEui] - The device EUI to send the message to
+  Future<void> sendFormattedMessage(String devEui, String toModule, String data) async {
+    try {
+      // Format the message as <to-module>-<data>
+      final formattedMessage = '$toModule-$data';
+      
+      // Dynamically extract deviceId from the received message
+      final deviceId = _lastReceivedDeviceId;
+      if (deviceId == null) {
+        throw Exception('Device ID not available. Ensure a message has been received before sending.');
+      }
+
+      // Encode the payload
+      final payloadData = base64.encode(utf8.encode(formattedMessage));
+      
+      debugPrint('Preparing to send formatted payload: $formattedMessage');
+      await _sendDownlinkMessage(deviceId, payloadData);
+      debugPrint('Formatted downlink message sent successfully.');
+    } catch (e) {
+      debugPrint('Error sending formatted message: $e');
+      throw Exception('Error sending formatted message: $e');
+    }
+  }
+
   String? _lastReceivedDeviceId; // Store the last received device ID
 
   Future<Map<String, double>> computeDeviceLocation(String devEui, List<Map<String, dynamic>> gatewaysData) async {

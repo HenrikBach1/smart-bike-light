@@ -1,9 +1,17 @@
-//file=Network.cpp
+//file=CustomLoRa.cpp
 
 #include "LedControl.h"
-#include "Network.h" // Include Network.h (which includes Pins.h)
+#include "CustomLoRa.h" // Include CustomLoRa.h (which includes Pins.h)
 #include <Arduino.h> // Include Arduino library for Base64 decoding
 #include <base64.h> // Include Base64 library for decoding
+
+/* This module's compilation is controlled by the ENABLE_LORA_MODULE flag in Globals.h
+ * When ENABLE_LORA_MODULE is set to 0, this implementation code is excluded from compilation
+ * When ENABLE_LORA_MODULE is set to 1, this implementation code is included in compilation
+ * Empty function stubs are provided in CustomLoRa.h when this module is disabled
+ */
+
+#if ENABLE_LORA_MODULE
 
 // Configuration constants
 #define JOIN_MAX_RETRIES 5     // Maximum number of join attempts
@@ -13,9 +21,6 @@
 
 HardwareSerial mySerial(UART); // Initialize UART1
 rn2xx3 myLora(mySerial);       // Initialize LoRa instance
-
-//Global wide variables for :
-String message = "";       // Received message
 
 //Module wide variables for :
 namespace {
@@ -139,7 +144,39 @@ void hexDecode(const String& hexInput, char* output) {
     output[length / 2] = '\0'; // Null-terminate the decoded string
 }
 
-TX_RETURN_TYPE transeive(Module module, Status status, const char* data) {
+// Function to decompose a formatted message into components
+DecomposedMessage decompose_message(const String& formattedMessage) {
+    DecomposedMessage result;
+    
+    // Initialize default values
+    result.toModule = MODULE_NONE;
+    result.data = "";
+    
+    // Check if message is valid
+    if (formattedMessage.length() < 3) { // At minimum need XX-
+        Serial.println("Invalid message format: too short");
+        // Even for invalid messages, we still return the original message as data
+        result.data = formattedMessage;
+        return result;
+    }
+    
+    // Parse module value (first two hex characters)
+    String moduleStr = formattedMessage.substring(0, 2);
+    uint8_t moduleVal = strtol(moduleStr.c_str(), nullptr, 16);
+    
+    // Get the data portion (everything after the dash)
+    if (formattedMessage.length() > 3) {
+        result.data = formattedMessage.substring(3);
+    } else {
+        // If there's no data portion, set data to empty string but still return
+        result.data = "";
+    }
+    
+    result.toModule = static_cast<Module>(moduleVal); // Use static_cast to convert to Module enum
+    return result;
+}
+
+TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
     // Check if we are connected to TTN, if not try to join
     if (!is_joined_TTN()) {
         Serial.println("Not connected to TTN, attempting to join...");
@@ -152,7 +189,7 @@ TX_RETURN_TYPE transeive(Module module, Status status, const char* data) {
 
     // Convert both the module and status to a two-byte hex prefix
     char prefixedData[256]; // Adjust size as needed
-    snprintf(prefixedData, sizeof(prefixedData), "%02X%02X%s", (uint8_t)module, (uint8_t)status, data);
+    snprintf(prefixedData, sizeof(prefixedData), "%02X-%02X-%s", (uint8_t)module, (uint8_t)status, data);
 
     // Print the prefixed data for debugging
     Serial.print("DevEUI: ");
@@ -175,3 +212,5 @@ TX_RETURN_TYPE transeive(Module module, Status status, const char* data) {
     delay(2000); //TODO: HB: 1% duty cycle implemented in this way, for now. Or does the WAN implementation this for us?
     return response;
 }
+
+#endif // ENABLE_CUSTOM_LORA_MODULE
