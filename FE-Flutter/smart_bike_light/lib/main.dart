@@ -55,6 +55,8 @@ class TestPageState extends State<TestPage> {
   final TextEditingController _devEuiController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _hexPrefixController = TextEditingController();
+  final TextEditingController _toModuleController = TextEditingController(); // New controller for to-module
+  final TextEditingController _dataController = TextEditingController(); // New controller for data
   String _deviceData = '';
   bool _isLoading = false;
   late final TTNApi _ttnApi; // Use TTNApi for API interactions
@@ -63,6 +65,37 @@ class TestPageState extends State<TestPage> {
   void initState() {
     super.initState();
     _ttnApi = TTNApi.createDefault(); // Use the factory method to initialize TTNApi
+  }
+
+  /// Parses the payload string into its components
+  /// Format: <to-module>-<from-module-status>-<from-module-data>
+  Map<String, String> _parsePayload(String payload) {
+    final result = {
+      'toModule': 'N/A',
+      'fromModuleStatus': 'N/A',
+      'fromModuleData': 'N/A',
+    };
+    
+    if (payload == null || payload.isEmpty) {
+      return result;
+    }
+    
+    final parts = payload.split('-');
+    
+    if (parts.length >= 1) {
+      result['toModule'] = parts[0];
+    }
+    
+    if (parts.length >= 2) {
+      result['fromModuleStatus'] = parts[1];
+    }
+    
+    if (parts.length >= 3) {
+      // Join any remaining parts in case the data itself contains hyphens
+      result['fromModuleData'] = parts.sublist(2).join('-');
+    }
+    
+    return result;
   }
 
   Future<void> receiveMessages() async {
@@ -93,11 +126,17 @@ class TestPageState extends State<TestPage> {
               'Accuracy: ${devicePosition['accuracy']?.toStringAsFixed(1) ?? 'N/A'}m'
             : 'Not available';
 
+        // Parse the payload
+        final parsedPayload = _parsePayload(decodedPayload);
+
         setState(() {
           _deviceData = '''
 Received payload:
 - Device ID: $deviceId
 - Decoded Payload: $decodedPayload
+- To Module: ${parsedPayload['toModule']}
+- From Module Status: ${parsedPayload['fromModuleStatus']}
+- From Module Data: ${parsedPayload['fromModuleData']}
 - Gateway ID: $gatewayId
 - Gateway Coordinates: $gatewayCoords
 - Estimated Device Position: $devicePositionText
@@ -148,6 +187,39 @@ Received payload:
     }
   }
 
+  Future<void> sendFormattedMessage() async {
+    final toModule = _hexPrefixController.text.trim(); // Using hexPrefixController for to-module
+    final data = _messageController.text.trim(); // Using messageController for data
+    final devEui = _devEuiController.text.trim();
+
+    if (devEui.isEmpty || toModule.isEmpty || data.isEmpty) {
+      setState(() {
+        _deviceData = 'Error: DevEUI, to-module, and data cannot be empty.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _deviceData = 'Sending formatted message...';
+    });
+
+    try {
+      await _ttnApi.sendFormattedMessage(devEui, toModule, data);
+      setState(() {
+        _deviceData = 'Formatted message sent successfully.';
+      });
+    } catch (e) {
+      setState(() {
+        _deviceData = 'Error sending formatted message: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -171,21 +243,23 @@ Received payload:
             TextField(
               controller: _hexPrefixController,
               decoration: const InputDecoration(
-                labelText: 'Module Number in Hex (1 Byte)',
+                labelText: 'To Module',
                 border: OutlineInputBorder(),
+                hintText: 'Enter target module identifier',
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _messageController,
               decoration: const InputDecoration(
-                labelText: 'Enter Message to Send',
+                labelText: 'Data',
                 border: OutlineInputBorder(),
+                hintText: 'Enter data to send to the module',
               ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: sendMessage,
+              onPressed: sendFormattedMessage,
               child: const Text('Send Message'),
             ),
             const SizedBox(height: 16),
