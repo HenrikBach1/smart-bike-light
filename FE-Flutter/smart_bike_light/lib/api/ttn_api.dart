@@ -89,7 +89,7 @@ class TTNApi {
   }
 
   // Public method to receive messages
-  Future<void> receiveMessage(String devEui, Function(String, String, Map<String, dynamic>?, Map<String, double>?) onMessageReceived) async {
+  Future<void> receiveMessage(String devEui, Function(String, String, List<Map<String, dynamic>>?, Map<String, double>?) onMessageReceived) async {
     await _connectToMqtt(devEui, (filteredPayload, deviceId) async {
       try {
         final data = jsonDecode(filteredPayload);
@@ -122,7 +122,8 @@ class TTNApi {
           devicePosition = await computeDeviceLocation(devEui, gatewaysData);
         }
 
-        onMessageReceived(decodedPayload, deviceId, null, devicePosition);
+        // Pass the entire list of gateways to the UI instead of just the first one
+        onMessageReceived(decodedPayload, deviceId, gatewaysData.isNotEmpty ? gatewaysData : null, devicePosition);
       } catch (e) {
         debugPrint('Error parsing filtered payload: $e');
       }
