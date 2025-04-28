@@ -12,7 +12,7 @@
 
 #define ENABLE_WIFI_SCANNER 1      // Enable WiFi Scanner
 #define ENABLE_BLE_MODULE 1        // Enable BLE functionality
-#define ENABLE_CUSTOM_LORA 1       // Use CustomLoRa implementation
+#define ENABLE_LORA_MODULE 1       // Use CustomLoRa implementation
 #define ENABLE_LED_CONTROL 1       // Enable LED Control module
 #define ENABLE_LED_BRIGHTNESS 1    // Enable LED Brightness Adjustment
 #define ENABLE_PHOTO_RESISTOR 1    // Enable Photo Resistor module

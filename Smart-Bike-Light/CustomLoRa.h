@@ -6,7 +6,7 @@
 #include <Arduino.h>
 #include "Globals.h" // Include for module enable/disable flags
 
-#if ENABLE_CUSTOM_LORA
+#if ENABLE_LORA_MODULE
 
 #include <HardwareSerial.h>
 #include <rn2xx3.h>
@@ -18,6 +18,12 @@ extern rn2xx3 myLora;           // Declare rn2xx3 object
 // Use the global message variable from the main sketch
 extern String message;
 
+// Structure to hold the decomposed message components
+struct DecomposedMessage {
+    Module toModule;
+    String data;
+};
+
 void initialize_globals();
 void initialize_LoRaWAN();
 bool join_TTN();
@@ -25,11 +31,18 @@ bool leave_TTN();
 void initialize_module_rn2483_LoRa();
 TX_RETURN_TYPE tranceive(Module module, Status status, const char* data);
 bool is_joined_TTN();
+DecomposedMessage decompose_message(const String& formattedMessage);
 
 #else
 
 // Need to include rn2xx3.h for TX_RETURN_TYPE even in function stubs
 #include <rn2xx3.h>
+
+// Structure to hold the decomposed message components (even when disabled)
+struct DecomposedMessage {
+    Module toModule;
+    String data;
+};
 
 // Empty function stubs when module is disabled
 inline void initialize_globals() {}
@@ -39,7 +52,11 @@ inline bool leave_TTN() { return false; }
 inline void initialize_module_rn2483_LoRa() {}
 inline TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) { return TX_FAIL; }
 inline bool is_joined_TTN() { return false; }
+inline DecomposedMessage decompose_message(const String& formattedMessage) { 
+    DecomposedMessage empty = {MODULE_NONE, ""};
+    return empty; 
+}
 
-#endif // ENABLE_CUSTOM_LORA
+#endif // ENABLE_LORA_MODULE
 
 #endif // CUSTOMLORA_H

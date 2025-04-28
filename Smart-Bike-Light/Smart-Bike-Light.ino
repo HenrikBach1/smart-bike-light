@@ -28,10 +28,6 @@ void setup() {
 }
 
 void loop() {
-  led_on();
-
-  // Connection to TTN is now handled automatically in tranceive function
-  
   Serial.println("TXing");
   TX_RETURN_TYPE response = tranceive(MODULE_NONE, STATUS_OK, "!"); // Send data and receive waiting data
   if (response == TX_SUCCESS) {
@@ -44,9 +40,33 @@ void loop() {
 
   if (message != "") {
     Serial.println("RXing: " + message);
+    
+    // Use decompose_message to extract module and data from received message
+    DecomposedMessage decomposed = decompose_message(message);
+    
+    // Print the decomposed message components using cast instead of switch
+    Serial.print("To Module: ");
+    Serial.println((int)decomposed.toModule);
+    
+    Serial.print("Data: ");
+    Serial.println(decomposed.data);
+    
+    // Process message based on the module
+    if (decomposed.toModule == MODULE_LORAWAN) {  //01
+      // Handle LoRaWAN specific commands
+      if (decomposed.data == "LED_ON" || decomposed.data == "1") {
+        led_on();
+        Serial.println("LED turned ON by LoRaWAN command");
+      } else if (decomposed.data == "LED_OFF" || decomposed.data == "0") {
+        led_off();
+        Serial.println("LED turned OFF by LoRaWAN command");
+      }
+    } else {
+      // Handle other modules or unknown modules
+      Serial.println("Message for other module or unknown format");
+    }
+    
     message = "";
     Serial.println("Reset message: " + message);
   }
-
-  led_off();
 }
