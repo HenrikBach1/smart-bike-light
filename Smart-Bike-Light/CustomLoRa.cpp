@@ -22,6 +22,9 @@
 HardwareSerial mySerial(UART); // Initialize UART1
 rn2xx3 myLora(mySerial);       // Initialize LoRa instance
 
+// Define the global decomposed message variable
+DecomposedMessage g_decomposedMessage = {MODULE_NONE, ""};
+
 //Module wide variables for :
 namespace {
     String _devEUI = "";         // DevEUI/HWEUI
@@ -191,23 +194,93 @@ TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
     char prefixedData[256]; // Adjust size as needed
     snprintf(prefixedData, sizeof(prefixedData), "%02X-%02X-%s", (uint8_t)module, (uint8_t)status, data);
 
-    // Print the prefixed data for debugging
+    // TXing section
+    Serial.println("TXing");
     Serial.print("DevEUI: ");
     Serial.println(_devEUI);
     Serial.print("Sending message: ");
     Serial.println(prefixedData);
-
-    // Send the prefixed data
+    
+    // Send the message
     TX_RETURN_TYPE response = myLora.tx(prefixedData);
+
+    // Show send status after receiving message
+    if (response == TX_SUCCESS) {
+        Serial.println("Message sent!");
+    } else if (response == TX_FAIL) {
+        Serial.println("Failed to send.");
+    } else {
+        Serial.println("Unknown response.");
+    }
+
     message = myLora.getRx();
-
-    // Decode the hexadecimal string to ASCII
-    char asciiMessage[256]; // Adjust size as needed
-    hexDecode(message, asciiMessage);
-    message = String(asciiMessage); // Convert to String
-
+    
     Serial.print("ASCII message received: ");
     Serial.println(message);
+    
+    if (message != "") {
+        Serial.println("RXing: " + message);
+        
+        // Decode the hexadecimal string to ASCII
+        char asciiMessage[256]; // Adjust size as needed
+        hexDecode(message, asciiMessage);
+        message = String(asciiMessage); // Convert to String
+        
+        // Use decompose_message to extract module and data from received message and store in global variable
+        g_decomposedMessage = decompose_message(message);
+        
+        // Print the decomposed message components using cast instead of switch
+        Serial.print("To Module: ");
+        Serial.println((int)g_decomposedMessage.toModule);
+        
+        Serial.print("Data: ");
+        Serial.println(g_decomposedMessage.data);
+        
+        // Process message based on the module
+        if (g_decomposedMessage.toModule == MODULE_LORAWAN) {  //01
+          // Define variables outside of switch to avoid cross-initialization errors
+          uint8_t macs[3][6];
+          uint8_t rssis[3];
+          int networksFound = 0;
+          
+          // Handle LoRaWAN specific commands
+          switch (g_decomposedMessage.data[0]) {
+            case '2':
+              // WiFi scanning functionality is not currently available due to build system issues
+              Serial.println("WiFi scanning feature is not currently linked in this build");
+              break;
+            case '1':
+              led_on();
+              Serial.println("LED turned ON by LoRaWAN command");
+              break;
+            case '0':
+              led_off();
+              Serial.println("LED turned OFF by LoRaWAN command");
+              break;
+            case 'L':
+              // Check if it's "LED_ON" or "LED_OFF"
+              if (g_decomposedMessage.data.indexOf("LED_ON") == 0) {
+                led_on();
+                Serial.println("LED turned ON by LoRaWAN command");
+              } else if (g_decomposedMessage.data.indexOf("LED_OFF") == 0) {
+                led_off();
+                Serial.println("LED turned OFF by LoRaWAN command");
+              } else {
+                Serial.println("Unknown LED command");
+              }
+              break;
+            default:
+              Serial.println("Unknown LED command");
+              break;
+          }
+        } else {
+          // Handle other modules or unknown modules
+          Serial.println("Message for other module or unknown format");
+        }
+        
+        message = "";
+        Serial.println("Reset message: " + message);
+    }
 
     delay(2000); //TODO: HB: 1% duty cycle implemented in this way, for now. Or does the WAN implementation this for us?
     return response;
