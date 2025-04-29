@@ -24,6 +24,9 @@ struct DecomposedMessage {
     String data;
 };
 
+// Global decomposed message variable accessible to all modules
+extern DecomposedMessage g_decomposedMessage;
+
 void initialize_globals();
 void initialize_LoRaWAN();
 bool join_TTN();
@@ -43,6 +46,9 @@ struct DecomposedMessage {
     Module toModule;
     String data;
 };
+
+// Global decomposed message variable accessible to all modules (even when disabled)
+extern DecomposedMessage g_decomposedMessage;
 
 // Empty function stubs when module is disabled
 inline void initialize_globals() {}

@@ -7,6 +7,7 @@
 #include "LedControl.h"
 #include "CustomLoRa.h"
 #include "Globals.h" // Include (Pins.h) for LED_PIN, RST, RX, TX, and UART
+#include "WiFiScanner.h" // Include for getTop3Networks function
 
 // Define global application variables
 String message = ""; // Global message variable for LoRa communications
@@ -19,6 +20,8 @@ void setup() {
   initialize_LED();
   initialize_LoRaWAN();
   
+  // WiFi scanner initialization removed due to build system linking issues
+  
   // Join TTN once during setup
   if (join_TTN()) {
     Serial.println("TTN join successful in setup");
@@ -28,45 +31,40 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("TXing");
-  TX_RETURN_TYPE response = tranceive(MODULE_NONE, STATUS_OK, "!"); // Send data and receive waiting data
-  if (response == TX_SUCCESS) {
-      Serial.println("Message sent!");
-  } else if (response == TX_FAIL) {
-      Serial.println("Failed to send.");
-  } else {
-      Serial.println("Unknown response.");
-  }
 
-  if (message != "") {
-    Serial.println("RXing: " + message);
-    
-    // Use decompose_message to extract module and data from received message
-    DecomposedMessage decomposed = decompose_message(message);
-    
-    // Print the decomposed message components using cast instead of switch
-    Serial.print("To Module: ");
-    Serial.println((int)decomposed.toModule);
-    
-    Serial.print("Data: ");
-    Serial.println(decomposed.data);
-    
-    // Process message based on the module
-    if (decomposed.toModule == MODULE_LORAWAN) {  //01
-      // Handle LoRaWAN specific commands
-      if (decomposed.data == "LED_ON" || decomposed.data == "1") {
-        led_on();
-        Serial.println("LED turned ON by LoRaWAN command");
-      } else if (decomposed.data == "LED_OFF" || decomposed.data == "0") {
-        led_off();
-        Serial.println("LED turned OFF by LoRaWAN command");
-      }
-    } else {
-      // Handle other modules or unknown modules
-      Serial.println("Message for other module or unknown format");
-    }
-    
-    message = "";
-    Serial.println("Reset message: " + message);
+  // Transmit and receive data
+  Serial.println("Sending status update...");
+  TX_RETURN_TYPE response = tranceive(MODULE_NONE, STATUS_OK, "!"); 
+  
+  // Display response status
+  if (response == TX_SUCCESS) {
+    Serial.println("Status update sent successfully");
+  } else {
+    Serial.println("Failed to send status update");
   }
+  
+  // Print out the contents of the global decomposed message
+  Serial.println("\n--- BEGIN Global Decomposed Message Contents ---");
+  Serial.print("Target Module: ");
+  switch (g_decomposedMessage.toModule) {
+    case MODULE_NONE:
+      Serial.println("None (0)");
+      break;
+    case MODULE_LORAWAN:
+      Serial.println("LoRaWAN (1)");
+      break;
+    default:
+      Serial.print("Unknown (");
+      Serial.print((int)g_decomposedMessage.toModule);
+      Serial.println(")");
+      break;
+  }
+  
+  Serial.print("Message Data: \"");
+  Serial.print(g_decomposedMessage.data);
+  Serial.println("\"");
+  Serial.println("--- END Global Decomposed Message Contents ---\n");
+  
+  // Add a delay to avoid flooding the serial console
+  delay(5000);
 }
