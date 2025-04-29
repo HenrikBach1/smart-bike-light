@@ -66,4 +66,4 @@ int getTop3Networks(uint8_t macs[3][6], uint8_t rssis[3]) {
   return count;
 }
 
-#endif
+#endif // ENABLE_WIFI_SCANNER

@@ -12,11 +12,8 @@
 #include <rn2xx3.h>
 #include "Pins.h" // Explicitly include Pins.h for pin definitions
 
-extern HardwareSerial mySerial; // Declare Serial object
+extern HardwareSerial myLoRaSerial; // Declare Serial object
 extern rn2xx3 myLora;           // Declare rn2xx3 object
-
-// Use the global message variable from the main sketch
-extern String message;
 
 // Structure to hold the decomposed message components
 struct DecomposedMessage {
@@ -34,7 +31,7 @@ bool leave_TTN();
 void initialize_module_rn2483_LoRa();
 TX_RETURN_TYPE tranceive(Module module, Status status, const char* data);
 bool is_joined_TTN();
-DecomposedMessage decompose_message(const String& formattedMessage);
+void processLoRaWANMessage(const DecomposedMessage& message);
 
 #else
 
@@ -58,10 +55,7 @@ inline bool leave_TTN() { return false; }
 inline void initialize_module_rn2483_LoRa() {}
 inline TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) { return TX_FAIL; }
 inline bool is_joined_TTN() { return false; }
-inline DecomposedMessage decompose_message(const String& formattedMessage) { 
-    DecomposedMessage empty = {MODULE_NONE, ""};
-    return empty; 
-}
+inline void processLoRaWANMessage(const DecomposedMessage& message) {}
 
 #endif // ENABLE_LORA_MODULE
 

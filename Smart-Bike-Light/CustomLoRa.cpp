@@ -1,9 +1,10 @@
 //file=CustomLoRa.cpp
 
 #include "LedControl.h"
-#include "CustomLoRa.h" // Include CustomLoRa.h (which includes Pins.h)
-#include <Arduino.h> // Include Arduino library for Base64 decoding
-#include <base64.h> // Include Base64 library for decoding
+#include "CustomLoRa.h" // Include CustomLoRa.h (which includes Globals.h)
+#include "WiFiScanner.h" // Include WiFiScanner.h for getTop3Networks function
+#include <Arduino.h>    // Include Arduino library for Base64 decoding
+#include <base64.h>     // Include Base64 library for decoding
 
 /* This module's compilation is controlled by the ENABLE_LORA_MODULE flag in Globals.h
  * When ENABLE_LORA_MODULE is set to 0, this implementation code is excluded from compilation
@@ -19,8 +20,10 @@
 #define APP_EUI "0000000000000000"  // Application EUI for TTN
 #define APP_KEY "5EA67FF029810B31D0805D4749AA682E"  // Application Key for TTN
 
-HardwareSerial mySerial(UART); // Initialize UART1
-rn2xx3 myLora(mySerial);       // Initialize LoRa instance
+HardwareSerial myLoRaSerial(UART); // Initialize UART1
+rn2xx3 myLora(myLoRaSerial);       // Initialize LoRa instance
+
+// Define global application variables
 
 // Define the global decomposed message variable
 DecomposedMessage g_decomposedMessage = {MODULE_NONE, ""};
@@ -29,18 +32,23 @@ DecomposedMessage g_decomposedMessage = {MODULE_NONE, ""};
 namespace {
     String _devEUI = "";         // DevEUI/HWEUI
     bool _is_joined_TTN = false; // Track TTN join status
+    String _message = "";        // Module-internal message variable
+    
+    // Internal function prototypes and implementations
+    DecomposedMessage decompose_message(const String& formattedMessage);
 }
 
 void initialize_LoRaWAN() {
     //HB: initialize_globals();
 
-    mySerial.setRxBufferSize(1024);          // Set receive buffer size to 1024 bytes
-    mySerial.begin(57600, SERIAL_8N1, RX, TX); // Initialize UART communication
-    mySerial.setTimeout(1000);              // Set timeout to 1000ms
-    mySerial.println("Serial initialized.");
+    myLoRaSerial.setRxBufferSize(1024);          // Set receive buffer size to 1024 bytes
+    myLoRaSerial.begin(57600, SERIAL_8N1, RX, TX); // Initialize UART communication
+    myLoRaSerial.setTimeout(1000);              // Set timeout to 1000ms
+    myLoRaSerial.println("Serial initialized.");
 
     initialize_module_rn2483_LoRa();
-    mySerial.println("LoRa module initialized.");
+    Serial.println("LoRa module initialized.");
+    Serial.println("LoRaWAN initialized");  
 }
 
 bool join_TTN() {
@@ -101,7 +109,7 @@ void initialize_module_rn2483_LoRa() {
     delay(100);
     digitalWrite(RST, HIGH);
     delay(100); // Wait for RN2xx3's startup message
-    mySerial.flush();
+    myLoRaSerial.flush();
 
     // Check communication with the radio
     myLora.sendRawCommand("mac reset");
@@ -147,36 +155,38 @@ void hexDecode(const String& hexInput, char* output) {
     output[length / 2] = '\0'; // Null-terminate the decoded string
 }
 
-// Function to decompose a formatted message into components
-DecomposedMessage decompose_message(const String& formattedMessage) {
-    DecomposedMessage result;
-    
-    // Initialize default values
-    result.toModule = MODULE_NONE;
-    result.data = "";
-    
-    // Check if message is valid
-    if (formattedMessage.length() < 3) { // At minimum need XX-
-        Serial.println("Invalid message format: too short");
-        // Even for invalid messages, we still return the original message as data
-        result.data = formattedMessage;
+namespace {
+    // Function to decompose a formatted message into components
+    DecomposedMessage decompose_message(const String& formattedMessage) {
+        DecomposedMessage result;
+        
+        // Initialize default values
+        result.toModule = MODULE_NONE;
+        result.data = "";
+        
+        // Check if message is valid
+        if (formattedMessage.length() < 3) { // At minimum need XX-
+            Serial.println("Invalid message format: too short");
+            // Even for invalid messages, we still return the original message as data
+            result.data = formattedMessage;
+            return result;
+        }
+        
+        // Parse module value (first two hex characters)
+        String moduleStr = formattedMessage.substring(0, 2);
+        uint8_t moduleVal = strtol(moduleStr.c_str(), nullptr, 16);
+        
+        // Get the data portion (everything after the dash)
+        if (formattedMessage.length() > 3) {
+            result.data = formattedMessage.substring(3);
+        } else {
+            // If there's no data portion, set data to empty string but still return
+            result.data = "";
+        }
+        
+        result.toModule = static_cast<Module>(moduleVal); // Use static_cast to convert to Module enum
         return result;
     }
-    
-    // Parse module value (first two hex characters)
-    String moduleStr = formattedMessage.substring(0, 2);
-    uint8_t moduleVal = strtol(moduleStr.c_str(), nullptr, 16);
-    
-    // Get the data portion (everything after the dash)
-    if (formattedMessage.length() > 3) {
-        result.data = formattedMessage.substring(3);
-    } else {
-        // If there's no data portion, set data to empty string but still return
-        result.data = "";
-    }
-    
-    result.toModule = static_cast<Module>(moduleVal); // Use static_cast to convert to Module enum
-    return result;
 }
 
 TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
@@ -209,25 +219,29 @@ TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
         Serial.println("Message sent!");
     } else if (response == TX_FAIL) {
         Serial.println("Failed to send.");
+    } else if (response == 2) {
+        Serial.println("Message sent and downlink data received!");
+        response = TX_SUCCESS; // Treat this as a success for our purposes
     } else {
-        Serial.println("Unknown response.");
+        Serial.println("Unknown response: \"" + String(response) + "\"");
+        response = TX_FAIL; // Treat this as a failure
     }
 
-    message = myLora.getRx();
+    _message = myLora.getRx();
     
-    Serial.print("ASCII message received: ");
-    Serial.println(message);
-    
-    if (message != "") {
-        Serial.println("RXing: " + message);
+    if (_message != "") {
+        Serial.println("RXing: " + _message);
         
         // Decode the hexadecimal string to ASCII
         char asciiMessage[256]; // Adjust size as needed
-        hexDecode(message, asciiMessage);
-        message = String(asciiMessage); // Convert to String
+        hexDecode(_message, asciiMessage);
+        _message = String(asciiMessage); // Convert to String
         
-        // Use decompose_message to extract module and data from received message and store in global variable
-        g_decomposedMessage = decompose_message(message);
+        Serial.print("ASCII message received: ");
+        Serial.println(_message);
+        
+            // Use decompose_message to extract module and data from received message and store in global variable
+        g_decomposedMessage = decompose_message(_message);
         
         // Print the decomposed message components using cast instead of switch
         Serial.print("To Module: ");
@@ -236,54 +250,108 @@ TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
         Serial.print("Data: ");
         Serial.println(g_decomposedMessage.data);
         
-        // Process message based on the module
-        if (g_decomposedMessage.toModule == MODULE_LORAWAN) {  //01
-          // Define variables outside of switch to avoid cross-initialization errors
-          uint8_t macs[3][6];
-          uint8_t rssis[3];
-          int networksFound = 0;
-          
-          // Handle LoRaWAN specific commands
-          switch (g_decomposedMessage.data[0]) {
-            case '2':
-              // WiFi scanning functionality is not currently available due to build system issues
-              Serial.println("WiFi scanning feature is not currently linked in this build");
-              break;
-            case '1':
-              led_on();
-              Serial.println("LED turned ON by LoRaWAN command");
-              break;
-            case '0':
-              led_off();
-              Serial.println("LED turned OFF by LoRaWAN command");
-              break;
-            case 'L':
-              // Check if it's "LED_ON" or "LED_OFF"
-              if (g_decomposedMessage.data.indexOf("LED_ON") == 0) {
-                led_on();
-                Serial.println("LED turned ON by LoRaWAN command");
-              } else if (g_decomposedMessage.data.indexOf("LED_OFF") == 0) {
-                led_off();
-                Serial.println("LED turned OFF by LoRaWAN command");
-              } else {
-                Serial.println("Unknown LED command");
-              }
-              break;
-            default:
-              Serial.println("Unknown LED command");
-              break;
-          }
-        } else {
-          // Handle other modules or unknown modules
-          Serial.println("Message for other module or unknown format");
-        }
-        
-        message = "";
-        Serial.println("Reset message: " + message);
+        _message = "";
+        Serial.println("Reset message: " + _message);
     }
 
     delay(2000); //TODO: HB: 1% duty cycle implemented in this way, for now. Or does the WAN implementation this for us?
     return response;
 }
 
-#endif // ENABLE_CUSTOM_LORA_MODULE
+// Function to process LoRaWAN messages
+void processLoRaWANMessage(const DecomposedMessage& message) {
+  if (message.toModule == MODULE_LORAWAN) {  //01
+    // Define variables outside of switch to avoid cross-initialization errors
+    uint8_t macs[3][6];
+    uint8_t rssis[3];
+    int networksFound = 0;
+    
+    // Handle LoRaWAN specific commands
+    switch (message.data[0]) {
+      case '2':
+        networksFound = getTop3Networks(macs, rssis);
+        Serial.println("WiFi Networks Scan Results:");
+        if (networksFound == 0) {
+          Serial.println("No networks found");
+        } else {
+          for (int i = 0; i < networksFound; i++) {
+            Serial.print("Network ");
+            Serial.print(i + 1);
+            Serial.print(": MAC=");
+            for (int j = 0; j < 6; j++) {
+              if (macs[i][j] < 16) Serial.print("0"); // Add leading zero for proper MAC format
+              Serial.print(macs[i][j], HEX);
+              if (j < 5) Serial.print(":"); // Add colon between MAC bytes except after the last one
+            }
+            Serial.print(", RSSI=");
+            Serial.println(rssis[i]);
+          }
+
+          // Create a data message in the format for above wifi networks: 
+          // "<networksFound>-<MAC1>:<RSSI1>,<MAC2>:<RSSI2>,<MAC3>:<RSSI3>"
+          // 3-28EE52A277AE:59,A0E4CBFEDAC6:72,C4E9844ED82F:73
+
+          char wifiData[150]; // Buffer for wifi network data
+          char macStr[18]; // Buffer for MAC address string
+          int offset = 0;
+          
+          // Add the number of networks found
+          offset += snprintf(wifiData + offset, sizeof(wifiData) - offset, "%d-", networksFound);
+          
+          // Add each network's MAC and RSSI
+          for (int i = 0; i < networksFound; i++) {
+            // Format MAC address
+            sprintf(macStr, "%02X%02X%02X%02X%02X%02X", 
+                    macs[i][0], macs[i][1], macs[i][2], 
+                    macs[i][3], macs[i][4], macs[i][5]);
+            
+            // Add MAC:RSSI to the message
+            offset += snprintf(wifiData + offset, sizeof(wifiData) - offset, 
+                             "%s:%d", macStr, rssis[i]);
+            
+            // Add comma separator if not the last network
+            if (i < networksFound - 1) {
+              offset += snprintf(wifiData + offset, sizeof(wifiData) - offset, ",");
+            }
+          }
+          
+          // Send the WiFi data via LoRaWAN
+          Serial.print("Sending WiFi data: ");
+          Serial.println(wifiData);
+          TX_RETURN_TYPE wifiResponse = tranceive(MODULE_LORAWAN, STATUS_OK, wifiData);
+          
+          if (wifiResponse == TX_SUCCESS) {
+            Serial.println("WiFi data sent successfully");
+          } else {
+            Serial.println("Failed to send WiFi data");
+          }
+        }
+        break;
+      case '1':
+        led_on();
+        Serial.println("LED turned ON by LoRaWAN command");
+        break;
+      case '0':
+        led_off();
+        Serial.println("LED turned OFF by LoRaWAN command");
+        break;
+      case 'L':
+        // Check if it's "LED_ON" or "LED_OFF"
+        if (message.data.indexOf("LED_ON") == 0) {
+          led_on();
+          Serial.println("LED turned ON by LoRaWAN command");
+        } else if (message.data.indexOf("LED_OFF") == 0) {
+          led_off();
+          Serial.println("LED turned OFF by LoRaWAN command");
+        } else {
+          Serial.println("Unknown LED command");
+        }
+        break;
+      default:
+        Serial.println("Unknown LED command");
+        break;
+    }
+  }
+}
+
+#endif // ENABLE_LORA_MODULE

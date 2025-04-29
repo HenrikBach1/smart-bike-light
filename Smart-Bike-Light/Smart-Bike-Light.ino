@@ -9,9 +9,6 @@
 #include "Globals.h" // Include (Pins.h) for LED_PIN, RST, RX, TX, and UART
 #include "WiFiScanner.h" // Include for getTop3Networks function
 
-// Define global application variables
-String message = ""; // Global message variable for LoRa communications
-
 void setup() {
   Serial.begin(115200); // Open serial communication
   delay(200); // Wait for serial console to open
@@ -19,9 +16,10 @@ void setup() {
 
   initialize_LED();
   initialize_LoRaWAN();
-  
-  // WiFi scanner initialization removed due to build system linking issues
-  
+
+  initWiFiScanner();
+  Serial.println("WiFi Scanner initialized");
+
   // Join TTN once during setup
   if (join_TTN()) {
     Serial.println("TTN join successful in setup");
@@ -34,7 +32,7 @@ void loop() {
 
   // Transmit and receive data
   Serial.println("Sending status update...");
-  TX_RETURN_TYPE response = tranceive(MODULE_NONE, STATUS_OK, "!"); 
+  TX_RETURN_TYPE response = tranceive(MODULE_NONE, STATUS_OK, "!"); // Send a status update/ping message/I'm alive message
   
   // Display response status
   if (response == TX_SUCCESS) {
@@ -52,6 +50,7 @@ void loop() {
       break;
     case MODULE_LORAWAN:
       Serial.println("LoRaWAN (1)");
+      processLoRaWANMessage(g_decomposedMessage);
       break;
     default:
       Serial.print("Unknown (");
