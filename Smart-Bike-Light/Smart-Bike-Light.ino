@@ -19,9 +19,11 @@ void setup() {
 
   initialize_LED();
   initialize_LoRaWAN();
-  
-  // WiFi scanner initialization removed due to build system linking issues
-  
+
+  Serial.println("LoRaWAN initialized");  
+  initWiFiScanner();
+  Serial.println("WiFi Scanner initialized");
+
   // Join TTN once during setup
   if (join_TTN()) {
     Serial.println("TTN join successful in setup");
