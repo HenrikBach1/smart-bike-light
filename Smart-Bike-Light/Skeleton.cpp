@@ -1,13 +1,7 @@
+
 // Skeleton.cpp
 #include "Skeleton.h"
 
-/* This module's compilation is controlled by the ENABLE_SKELETON flag in Globals.h
- * When ENABLE_SKELETON is set to 0, this implementation code is excluded from compilation
- * When ENABLE_SKELETON is set to 1, this implementation code is included in compilation
- * Empty function stubs are provided in Skeleton.h when this module is disabled
- */
-
-#if ENABLE_SKELETON // Only compile implementation if module is enabled
 
 unsigned long lastPrintTime = 0;
 const unsigned long printInterval = 5000;  // milliseconds
@@ -18,6 +12,17 @@ OneButton button2(BUTTON_2, false);
 
 uint8_t lastMacs[3][6] = {{0x00}};
 uint8_t lastRssis[3] = {0x00};
+
+DeviceState deviceState = {
+  .isMoving = false,
+  .isDark = false,
+  .isCharging = false,
+  .isConnectedToTTN = false,
+  .batteryPercentage = 100,
+  .batteryTimeLeft = 0,
+  .mode = STORAGE,
+  .lightMode = ECO
+};
 
 
 void read_sensors() {
@@ -45,7 +50,7 @@ void handleClick1() {
 void handleLong1() {
   Serial.println("Btn1 long press");
   Serial.println("\tGoing into park mode. (do routine)");
-  mode = PARK;
+  deviceState.mode = PARK;
   goToDeepSleep(TIME_TO_SLEEP_PARKED, true);
 }
 
@@ -56,7 +61,7 @@ void handleClick2() {
 void handleLong2() {
   Serial.println("Btn2 long press");
   Serial.println("\tGoing into storage mode. (do routine)");
-  mode = STORAGE;
+  deviceState.mode = STORAGE;
   goToDeepSleep(TIME_TO_SLEEP_STORAGE, false);
 }
 
@@ -112,9 +117,9 @@ void mpuWakeupRoutine() {
 
 void timerWakeupRoutine() {
   Serial.println("\tWe now have to check which mode we are in and do the right sequence of things!");
-  if (mode == STORAGE) {
+  if (deviceState.mode == STORAGE) {
     timerWakeupRoutineFromStorage();
-  } else if (mode == PARK) {
+  } else if (deviceState.mode == PARK) {
     timerWakeupRoutineFromPark();
   } else {
     Serial.println("We were in neither park nor storage mode - something is wrong!");
@@ -137,5 +142,3 @@ void timerWakeupRoutineFromPark() {
 
   goToDeepSleep(TIME_TO_SLEEP_PARKED, true);
 }
-
-#endif // ENABLE_SKELETON
