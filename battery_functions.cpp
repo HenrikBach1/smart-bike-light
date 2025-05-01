@@ -4,7 +4,7 @@
 #include <cmath>  // for roundf()
 
 int battery_monitoring::adc_voltage_to_bb_percent() {
-    int adc_voltage = analogRead(adc_check_voltage);
+    int adc_voltage = analogRead(adc_check_voltage_pin);
     // 1) Spænding efter pulldown (post-divider)
     constexpr float R1 = 50000.0f, R2 = 180000.0f;
     float v_out = (float(adc_voltage) / resolution) * max_adc_volt;
