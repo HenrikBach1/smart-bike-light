@@ -12,15 +12,12 @@
 const int pwmFreq = 5000; // 
 const int pwmResolution = 8; // 8-bit → 0–255
 
-// Global string to store input for brightness adjustment
-String input = "";
+void adjustBrightness(String bI) {
+  bI.toUpperCase(); //Make case insensitive
 
-void adjustBrightness() {
-  input.toUpperCase(); //Make case insensitive
-
-  int abIndex = input.indexOf("AB"); //Find position in string where AB occurs, return -1 if not found
-  if (abIndex != -1 && abIndex + 2 < input.length()) { //Check if abIndex is 0 or above (position in string) and check if its longer than the two characters AB
-    String numberPart = input.substring(abIndex + 2); //Make a string of the numbers behind abIndex position
+  int abIndex = bI.indexOf("AB"); //Find position in string where AB occurs, return -1 if not found
+  if (abIndex != -1 && abIndex + 2 < bI.length()) { //Check if abIndex is 0 or above (position in string) and check if its longer than the two characters AB
+    String numberPart = bI.substring(abIndex + 2); //Make a string of the numbers behind abIndex position
     int value = numberPart.toInt(); //Turn the numbers in the string into integers
 
     if (value >= 0 && value <= 100) {
