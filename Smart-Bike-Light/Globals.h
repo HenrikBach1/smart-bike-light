@@ -11,12 +11,12 @@
 // Set to 0 to exclude a module from compilation
 #define ENABLE_MPU6050 0           // Disable MPU6050 module by default
 #define ENABLE_BLE_MODULE 0        // Enable BLE functionality
+#define ENABLE_LED_BRIGHTNESS 0    // Enable LED Brightness Adjustment
 
 #define ENABLE_SKELETON 1          // Disable Skeleton module
 #define ENABLE_WIFI_SCANNER 1      // Enable WiFi Scanner
 #define ENABLE_LORA_MODULE 1       // Use CustomLoRa implementation
 #define ENABLE_LED_CONTROL 1       // Enable LED Control module
-#define ENABLE_LED_BRIGHTNESS 1    // Enable LED Brightness Adjustment
 #define ENABLE_PHOTO_RESISTOR 1    // Enable Photo Resistor module
 
 typedef enum {

@@ -9,10 +9,13 @@
 #include "esp_sleep.h"
 #include "WiFiScanner.h"
 #include "Globals.h"
+#include "CustomLoRa.h"
 
 
 extern unsigned long lastPrintTime;
+extern unsigned long lastPingTime;
 extern const unsigned long printInterval;  // milliseconds
+extern const unsigned long printIntervalLoRa;  // milliseconds
 extern RTC_DATA_ATTR Mode mode;
 
 extern OneButton button1; /* active-HIGH */
@@ -25,8 +28,12 @@ extern DeviceState deviceState;
 
 
 // Function prototypes
+const char* modeToString(Mode m);
+const char* lightToString(LightMode l);
+void printDeviceState();
 void read_sensors();
 void print_info_interval();
+void lora_ping();
 void tick_stuff();
 
 void handleClick1();

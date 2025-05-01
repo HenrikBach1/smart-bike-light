@@ -4,7 +4,9 @@
 
 
 unsigned long lastPrintTime = 0;
+unsigned long lastPingTime = 0;
 const unsigned long printInterval = 5000;  // milliseconds
+const unsigned long printIntervalLoRa = 30000;  // milliseconds
 RTC_DATA_ATTR Mode mode = STORAGE;
 
 OneButton button1(BUTTON_1, false); /* active-HIGH */
@@ -24,6 +26,49 @@ DeviceState deviceState = {
   .lightMode = ECO
 };
 
+// helper to turn enums into human-readable strings:
+const char* modeToString(Mode m) {
+  switch(m) {
+    case STORAGE:      return "STORAGE";
+    case PARK:  return "PARK";
+    case ACTIVE:  return "ACTIVE";
+    // …add other modes here…
+    default:           return "UNKNOWN";
+  }
+}
+const char* lightToString(LightMode l) {
+  switch(l) {
+    case ECO:    return "ECO";
+    case MEDIUM: return "NORMAL";
+    case STRONG:  return "STRONG";
+    // …add other light modes here…
+    default:     return "UNKNOWN";
+  }
+}
+
+// your “print all fields” function:
+void printDeviceState() {
+  Serial.println(F("---- Device State ----"));
+  Serial.print    (F("isMoving:         "));
+  Serial.println (deviceState.isMoving ? "YES" : "no");
+  Serial.print    (F("isDark:           "));
+  Serial.println (deviceState.isDark   ? "YES" : "no");
+  Serial.print    (F("isCharging:       "));
+  Serial.println (deviceState.isCharging ? "YES" : "no");
+  Serial.print    (F("isConnectedToTTN: "));
+  Serial.println (deviceState.isConnectedToTTN ? "YES" : "no");
+  Serial.print    (F("batteryPercentage: "));
+  Serial.print   (deviceState.batteryPercentage);
+  Serial.println(F("%"));
+  Serial.print    (F("batteryTimeLeft:   "));
+  Serial.print   (deviceState.batteryTimeLeft);
+  Serial.println(F(" s"));
+  Serial.print    (F("mode:              "));
+  Serial.println(modeToString(deviceState.mode));
+  Serial.print    (F("lightMode:         "));
+  Serial.println(lightToString(deviceState.lightMode));
+  Serial.println(F("----------------------"));
+}
 
 void read_sensors() {
   // Sensor stuff here
@@ -33,8 +78,60 @@ void print_info_interval() {
   unsigned long now = millis();
   if (now - lastPrintTime >= printInterval) {
     lastPrintTime = now;
-    Serial.println("This code executes in a loop in active mode!");
+    printDeviceState();
     delay(1);
+  }
+}
+
+void lora_ping() {
+  unsigned long now = millis();
+  if (now - lastPingTime >= printIntervalLoRa) {
+    lastPingTime = now;
+    Serial.println("------ LoRa ping routine: ------");
+
+    if (!is_joined_TTN()) { // Test if we are joined
+      Serial.println("Not connected - trying to connect...");
+      if (join_TTN()) { // ...  if not then do it
+      Serial.println("TTN join successful");
+      } else {
+        Serial.println("TTN join failed");
+      }
+    }
+    // We are online and can do our routine
+    Serial.println("Sending status update...");
+    TX_RETURN_TYPE response = tranceive(MODULE_NONE, STATUS_OK, "!"); // Send a status update/ping message/I'm alive message
+    
+    // Display response status
+    if (response == TX_SUCCESS) {
+      Serial.println("Status update sent successfully");
+    } else {
+      Serial.println("Failed to send status update");
+    }
+    
+    // Print out the contents of the global decomposed message
+    Serial.println("\n--- BEGIN Global Decomposed Message Contents ---");
+    Serial.print("Target Module: ");
+    switch (g_decomposedMessage.toModule) {
+      case MODULE_NONE:
+        Serial.println("None (0)");
+        break;
+      case MODULE_LORAWAN:
+        Serial.println("LoRaWAN (1)");
+        processLoRaWANMessage(g_decomposedMessage);
+        break;
+      default:
+        Serial.print("Unknown (");
+        Serial.print((int)g_decomposedMessage.toModule);
+        Serial.println(")");
+        break;
+    }
+    
+    Serial.print("Message Data: \"");
+    Serial.print(g_decomposedMessage.data);
+    Serial.println("\"");
+    Serial.println("--- END Global Decomposed Message Contents ---\n");
+    
+        
   }
 }
 
@@ -134,6 +231,9 @@ void timerWakeupRoutineFromStorage() {
 
 void timerWakeupRoutineFromPark() {
   Serial.println("Doing park mode wakeup routine");
+  // Write code here
+  // Init. stuff
+  // send ping...
   Serial.println("EXAMPLE: Scanning for WiFi MACs");
 
   initWiFiScanner();

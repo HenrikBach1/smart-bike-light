@@ -15,8 +15,8 @@
 #if ENABLE_LORA_MODULE
 
 // Configuration constants
-#define JOIN_MAX_RETRIES 5     // Maximum number of join attempts
-#define JOIN_RETRIES_DELAY 60000 // Delay between retries in milliseconds (60 seconds)
+#define JOIN_MAX_RETRIES 3     // Maximum number of join attempts
+#define JOIN_RETRIES_DELAY 3000 // Delay between retries in milliseconds (60 seconds)
 #define APP_EUI "0000000000000000"  // Application EUI for TTN
 #define APP_KEY "5EA67FF029810B31D0805D4749AA682E"  // Application Key for TTN
 
@@ -116,7 +116,7 @@ void initialize_module_rn2483_LoRa() {
     _devEUI = myLora.hweui();
     while (_devEUI.length() != 16) {
         Serial.println("Communication with RN2xx3 unsuccessful.");
-        delay(10000);
+        delay(2000);
         _devEUI = myLora.hweui();
     }
 
@@ -254,7 +254,6 @@ TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
         Serial.println("Reset message: " + _message);
     }
 
-    delay(2000); //TODO: HB: 1% duty cycle implemented in this way, for now. Or does the WAN implementation this for us?
     return response;
 }
 
