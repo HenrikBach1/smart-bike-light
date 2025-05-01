@@ -7,7 +7,7 @@
 class battery_monitoring {
 public:
     /// Konverterer rå ADC-værdi til batteriprocent (0–100)
-    int adc_voltage_to_bb_percent(int adc_voltage);
+    int adc_voltage_to_bb_percent();
 
     /// Returnerer true hvis enheden oplades lige nu
     bool is_charging();
