@@ -1,7 +1,7 @@
 //file=LedBrightnessAdjust.h
 
-#ifndef LedAdjustBrightness
-#define LedAdjustBrightness
+#ifndef LED_BRIGHTNESS_ADJUST_H
+#define LED_BRIGHTNESS_ADJUST_H
 
 #include <Arduino.h>
 #include "Globals.h" // Include for module enable/disable flags
@@ -22,4 +22,4 @@ inline void adjustBrightness() {}
 
 #endif // ENABLE_LED_BRIGHTNESS
 
-#endif // LEDADJUSTBRIGHTNESS
+#endif // LED_BRIGHTNESS_ADJUST_H
