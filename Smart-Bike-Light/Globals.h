@@ -8,11 +8,12 @@
 
 
 // Module enable/disable flags
-// Set to 0 to exclude a module from compilation
+// Set to 0 to exclude/disable a module from compilation
 #define ENABLE_MPU6050 0           // Disable MPU6050 module by default
 #define ENABLE_BLE_MODULE 0        // Enable BLE functionality
 #define ENABLE_LED_BRIGHTNESS 0    // Enable LED Brightness Adjustment
 
+// Set to 1 to include/enable a module for compilation
 #define ENABLE_SKELETON 1          // Disable Skeleton module
 #define ENABLE_WIFI_SCANNER 1      // Enable WiFi Scanner
 #define ENABLE_LORA_MODULE 1       // Use CustomLoRa implementation
