@@ -38,6 +38,37 @@ namespace {
     DecomposedMessage decompose_message(const String& formattedMessage);
 }
 
+// Function to lower the RX pin for at least 226 microseconds and send 0x55 character
+void wakeUp() {
+    Serial.println("Resetting RN2483 with RX pin and sending 0x55");
+    
+    // Configure RX pin as output temporarily
+    pinMode(RX, OUTPUT);
+    
+    // Lower the RX pin (set to LOW)
+    digitalWrite(RX, LOW);
+    
+    // Delay for at least 226 microseconds (using 230 to be safe)
+    delayMicroseconds(230);
+    
+    // Release the RX pin (back to HIGH)
+    digitalWrite(RX, HIGH);
+    
+    // Short delay to ensure the pin transition is complete
+    delayMicroseconds(10);
+    
+    // Reconfigure RX pin back for serial communication
+    pinMode(RX, INPUT);
+    
+    // Send the 0x55 character to the LoRa module
+    myLoRaSerial.write(0x55);
+    
+    // Wait for the transmission to complete
+    myLoRaSerial.flush();
+    
+    Serial.println("Reset and character transmission complete");
+}
+
 void initialize_LoRaWAN() {
     //HB: initialize_globals();
 
@@ -351,6 +382,21 @@ void processLoRaWANMessage(const DecomposedMessage& message) {
         break;
     }
   }
+}
+
+// Function to put RN2483 LoRa module into deep sleep mode
+void deepSleep() {
+    Serial.println("Putting RN2483 into deep sleep mode");
+    
+    // Send the sleep command with maximum sleep time (4294967296 ms ≈ 49.7 days)
+    String response = myLora.sendRawCommand("sys sleep 4294967296");
+    
+    // Check response
+    if (response == "ok") {
+        Serial.println("RN2483 entered deep sleep successfully");
+    } else {
+        Serial.println("Failed to put RN2483 into deep sleep. Response: " + response);
+    }
 }
 
 #endif // ENABLE_LORA_MODULE
