@@ -10,6 +10,6 @@
 #define TX      19  // UART TX
 #define RST     23  // Reset pin
 #define UART    1   // UART1
-#define ADC_PIN 39 // ASBJØRN: Analog input for battery monitoring (checking battery voltage level) 
-
+#define charge_pin 15 // Pin connected to IN+ on charging circuit. Used for battery monitoring
+#define adc_check_voltage 4 // Pin connected to B+ on charging circuit. Used for battery monitoring (battery percentage/lifetime)
 #endif // PINS_H
