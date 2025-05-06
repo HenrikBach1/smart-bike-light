@@ -14,6 +14,9 @@
 
 #if ENABLE_LORA_MODULE
 
+// Forward declarations for file-local functions
+static void initialize_module_rn2483_LoRa();
+
 // Configuration constants
 #define JOIN_MAX_RETRIES 3     // Maximum number of join attempts
 #define JOIN_RETRIES_DELAY 3000 // Delay between retries in milliseconds (60 seconds)
@@ -133,7 +136,7 @@ bool leave_TTN() {
     }
 }
 
-void initialize_module_rn2483_LoRa() {
+static void initialize_module_rn2483_LoRa() {
     // Reset RN2xx3
     pinMode(RST, OUTPUT); // Use RST from Pins.h
     digitalWrite(RST, LOW);
