@@ -27,7 +27,8 @@ typedef enum {
 
 typedef enum {
     STATUS_OK = 0,
-    STATUS_ERROR = -1
+    STATUS_ERROR = -1,
+    STATUS_PANIC = -255
 } Status;
 
 typedef enum {
