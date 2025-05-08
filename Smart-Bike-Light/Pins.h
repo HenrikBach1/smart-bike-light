@@ -20,6 +20,6 @@
 #define BAT_ADC_INPUT   36  // GPIO for Battery ADC input
 #define LDR_ADC_INPUT   39  // GPIO for LDR ADC input
 #define UART            1   // UART number (1 or 2) for ESP32
-
+#define BAT_CHG_INPUT   34 // GPIO for USB-charging input
 
 #endif // PINS_H
