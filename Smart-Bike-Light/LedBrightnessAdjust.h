@@ -1,7 +1,7 @@
 //file=LedBrightnessAdjust.h
 
-#ifndef LedAdjustBrightness
-#define LedAdjustBrightness
+#ifndef LED_BRIGHTNESS_ADJUST_H
+#define LED_BRIGHTNESS_ADJUST_H
 
 #include <Arduino.h>
 #include "Globals.h" // Include for module enable/disable flags
@@ -13,13 +13,13 @@
 extern String input;
 #define ledPin LED_PIN  // Use the LED_PIN defined in Pins.h
 
-void adjustBrightness();
+void adjustBrightness(String bI);
 
 #else
 
 // Empty function stub when module is disabled
-inline void adjustBrightness() {}
+inline void adjustBrightness(String) {}
 
 #endif // ENABLE_LED_BRIGHTNESS
 
-#endif // LEDADJUSTBRIGHTNESS
+#endif // LED_BRIGHTNESS_ADJUST_H

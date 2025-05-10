@@ -14,9 +14,12 @@
 
 #if ENABLE_LORA_MODULE
 
+// Forward declarations for file-local functions
+static void initialize_module_rn2483_LoRa();
+
 // Configuration constants
-#define JOIN_MAX_RETRIES 5     // Maximum number of join attempts
-#define JOIN_RETRIES_DELAY 60000 // Delay between retries in milliseconds (60 seconds)
+#define JOIN_MAX_RETRIES 3     // Maximum number of join attempts
+#define JOIN_RETRIES_DELAY 3000 // Delay between retries in milliseconds (60 seconds)
 #define APP_EUI "0000000000000000"  // Application EUI for TTN
 #define APP_KEY "5EA67FF029810B31D0805D4749AA682E"  // Application Key for TTN
 
@@ -36,6 +39,37 @@ namespace {
     
     // Internal function prototypes and implementations
     DecomposedMessage decompose_message(const String& formattedMessage);
+}
+
+// Function to lower the RX pin for at least 226 microseconds and send 0x55 character
+void wakeUp() {
+    Serial.println("Resetting RN2483 with RX pin and sending 0x55");
+    
+    // Configure RX pin as output temporarily
+    pinMode(RX, OUTPUT);
+    
+    // Lower the RX pin (set to LOW)
+    digitalWrite(RX, LOW);
+    
+    // Delay for at least 226 microseconds (using 230 to be safe)
+    delayMicroseconds(230);
+    
+    // Release the RX pin (back to HIGH)
+    digitalWrite(RX, HIGH);
+    
+    // Short delay to ensure the pin transition is complete
+    delayMicroseconds(10);
+    
+    // Reconfigure RX pin back for serial communication
+    pinMode(RX, INPUT);
+    
+    // Send the 0x55 character to the LoRa module
+    myLoRaSerial.write(0x55);
+    
+    // Wait for the transmission to complete
+    myLoRaSerial.flush();
+    
+    Serial.println("Reset and character transmission complete");
 }
 
 void initialize_LoRaWAN() {
@@ -102,7 +136,7 @@ bool leave_TTN() {
     }
 }
 
-void initialize_module_rn2483_LoRa() {
+static void initialize_module_rn2483_LoRa() {
     // Reset RN2xx3
     pinMode(RST, OUTPUT); // Use RST from Pins.h
     digitalWrite(RST, LOW);
@@ -116,7 +150,7 @@ void initialize_module_rn2483_LoRa() {
     _devEUI = myLora.hweui();
     while (_devEUI.length() != 16) {
         Serial.println("Communication with RN2xx3 unsuccessful.");
-        delay(10000);
+        delay(2000);
         _devEUI = myLora.hweui();
     }
 
@@ -254,7 +288,6 @@ TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
         Serial.println("Reset message: " + _message);
     }
 
-    delay(2000); //TODO: HB: 1% duty cycle implemented in this way, for now. Or does the WAN implementation this for us?
     return response;
 }
 
@@ -352,6 +385,21 @@ void processLoRaWANMessage(const DecomposedMessage& message) {
         break;
     }
   }
+}
+
+// Function to put RN2483 LoRa module into deep sleep mode
+void deepSleep() {
+    Serial.println("Putting RN2483 into deep sleep mode");
+    
+    // Send the sleep command with maximum sleep time (4294967296 ms ≈ 49.7 days)
+    String response = myLora.sendRawCommand("sys sleep 4294967296");
+    
+    // Check response
+    if (response == "ok") {
+        Serial.println("RN2483 entered deep sleep successfully");
+    } else {
+        Serial.println("Failed to put RN2483 into deep sleep. Response: " + response);
+    }
 }
 
 #endif // ENABLE_LORA_MODULE

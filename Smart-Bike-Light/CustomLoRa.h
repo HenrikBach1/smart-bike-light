@@ -1,4 +1,4 @@
-//file=CustomLoRa.h
+// file=CustomLoRa.h
 
 #ifndef CUSTOMLORA_H
 #define CUSTOMLORA_H
@@ -28,10 +28,11 @@ void initialize_globals();
 void initialize_LoRaWAN();
 bool join_TTN();
 bool leave_TTN();
-void initialize_module_rn2483_LoRa();
 TX_RETURN_TYPE tranceive(Module module, Status status, const char* data);
 bool is_joined_TTN();
 void processLoRaWANMessage(const DecomposedMessage& message);
+void wakeUp(); // Function to reset RX pin and send 0x55 character
+void deepSleep(); // Function to put RN2483 into deep sleep mode
 
 #else
 
@@ -52,10 +53,11 @@ inline void initialize_globals() {}
 inline void initialize_LoRaWAN() {}
 inline bool join_TTN() { return false; }
 inline bool leave_TTN() { return false; }
-inline void initialize_module_rn2483_LoRa() {}
 inline TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) { return TX_FAIL; }
 inline bool is_joined_TTN() { return false; }
 inline void processLoRaWANMessage(const DecomposedMessage& message) {}
+inline void wakeUp() {} // Stub for the reset function
+inline void deepSleep() {} // Stub for the deep sleep function
 
 #endif // ENABLE_LORA_MODULE
 
