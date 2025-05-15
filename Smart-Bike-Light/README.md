@@ -9,4 +9,5 @@
   - ```WiFi.h```
   - ESP Libraries
  
-  Upload the code the ESP32 and turn on device by clicking either button.
+## How to use
+Upload the code the ESP32 and turn on device by clicking either button.
