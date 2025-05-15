@@ -1,4 +1,4 @@
-// file=CustomLoRa.h
+//file=CustomLoRa.h
 
 #ifndef CUSTOMLORA_H
 #define CUSTOMLORA_H
@@ -12,8 +12,8 @@
 #include <rn2xx3.h>
 #include "Pins.h" // Explicitly include Pins.h for pin definitions
 
-extern HardwareSerial myLoRaSerial; // Declare Serial object
-extern rn2xx3 myLora;           // Declare rn2xx3 object
+extern RTC_DATA_ATTR HardwareSerial myLoRaSerial; // Declare Serial object
+extern RTC_DATA_ATTR rn2xx3 myLora;           // Declare rn2xx3 object
 
 // Structure to hold the decomposed message components
 struct DecomposedMessage {
@@ -28,11 +28,14 @@ void initialize_globals();
 void initialize_LoRaWAN();
 bool join_TTN();
 bool leave_TTN();
+bool initialize_module_rn2483_LoRa();
 TX_RETURN_TYPE tranceive(Module module, Status status, const char* data);
+void lora_ping();
 bool is_joined_TTN();
 void processLoRaWANMessage(const DecomposedMessage& message);
 void wakeUp(); // Function to reset RX pin and send 0x55 character
 void deepSleep(); // Function to put RN2483 into deep sleep mode
+
 
 #else
 
@@ -53,6 +56,7 @@ inline void initialize_globals() {}
 inline void initialize_LoRaWAN() {}
 inline bool join_TTN() { return false; }
 inline bool leave_TTN() { return false; }
+inline bool initialize_module_rn2483_LoRa() {}
 inline TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) { return TX_FAIL; }
 inline bool is_joined_TTN() { return false; }
 inline void processLoRaWANMessage(const DecomposedMessage& message) {}

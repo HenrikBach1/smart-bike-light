@@ -14,17 +14,14 @@
 
 #if ENABLE_LORA_MODULE
 
-// Forward declarations for file-local functions
-static void initialize_module_rn2483_LoRa();
-
 // Configuration constants
-#define JOIN_MAX_RETRIES 3     // Maximum number of join attempts
-#define JOIN_RETRIES_DELAY 3000 // Delay between retries in milliseconds (60 seconds)
+#define JOIN_MAX_RETRIES 2     // Maximum number of join attempts
+#define JOIN_RETRIES_DELAY 1000 // Delay between retries in milliseconds (60 seconds)
 #define APP_EUI "0000000000000000"  // Application EUI for TTN
 #define APP_KEY "5EA67FF029810B31D0805D4749AA682E"  // Application Key for TTN
 
-HardwareSerial myLoRaSerial(UART); // Initialize UART1
-rn2xx3 myLora(myLoRaSerial);       // Initialize LoRa instance
+RTC_DATA_ATTR HardwareSerial myLoRaSerial(UART); // Initialize UART1
+RTC_DATA_ATTR rn2xx3 myLora(myLoRaSerial);       // Initialize LoRa instance
 
 // Define global application variables
 
@@ -41,51 +38,27 @@ namespace {
     DecomposedMessage decompose_message(const String& formattedMessage);
 }
 
-// Function to lower the RX pin for at least 226 microseconds and send 0x55 character
-void wakeUp() {
-    Serial.println("Resetting RN2483 with RX pin and sending 0x55");
-    
-    // Configure RX pin as output temporarily
-    pinMode(RX, OUTPUT);
-    
-    // Lower the RX pin (set to LOW)
-    digitalWrite(RX, LOW);
-    
-    // Delay for at least 226 microseconds (using 230 to be safe)
-    delayMicroseconds(230);
-    
-    // Release the RX pin (back to HIGH)
-    digitalWrite(RX, HIGH);
-    
-    // Short delay to ensure the pin transition is complete
-    delayMicroseconds(10);
-    
-    // Reconfigure RX pin back for serial communication
-    pinMode(RX, INPUT);
-    
-    // Send the 0x55 character to the LoRa module
-    myLoRaSerial.write(0x55);
-    
-    // Wait for the transmission to complete
-    myLoRaSerial.flush();
-    
-    Serial.println("Reset and character transmission complete");
-}
-
 void initialize_LoRaWAN() {
     //HB: initialize_globals();
 
     myLoRaSerial.setRxBufferSize(1024);          // Set receive buffer size to 1024 bytes
     myLoRaSerial.begin(57600, SERIAL_8N1, RX, TX); // Initialize UART communication
     myLoRaSerial.setTimeout(1000);              // Set timeout to 1000ms
-    myLoRaSerial.println("Serial initialized.");
+    
+    Serial.println("Serial initialized.");
 
-    initialize_module_rn2483_LoRa();
-    Serial.println("LoRa module initialized.");
+    if (initialize_module_rn2483_LoRa()) {
+      Serial.println("LoRa module initialized.");
+    } else {
+      Serial.println("LoRa module NOT initialized.");
+    }
+
     Serial.println("LoRaWAN initialized");  
+    lora_ping();
 }
 
 bool join_TTN() {
+    lora_ping();
     if (_is_joined_TTN) {
         return true;
     }
@@ -116,6 +89,14 @@ bool is_joined_TTN() {
     return _is_joined_TTN;
 }
 
+void lora_ping() {
+  if (!myLora.hweui().isEmpty()) {
+    Serial.println("Ping to RN2384 successfull");
+  } else {
+    Serial.println("Ping to RN2384 failed");
+  }
+}
+
 bool leave_TTN() {
     if (!_is_joined_TTN) {
         // Already disconnected, nothing to do
@@ -136,7 +117,7 @@ bool leave_TTN() {
     }
 }
 
-static void initialize_module_rn2483_LoRa() {
+bool initialize_module_rn2483_LoRa() {
     // Reset RN2xx3
     pinMode(RST, OUTPUT); // Use RST from Pins.h
     digitalWrite(RST, LOW);
@@ -147,15 +128,19 @@ static void initialize_module_rn2483_LoRa() {
 
     // Check communication with the radio
     myLora.sendRawCommand("mac reset");
+    int lora_connect_tries = 1;
     _devEUI = myLora.hweui();
-    while (_devEUI.length() != 16) {
+    while ((_devEUI.length() != 16) && (lora_connect_tries <= 2)) {
         Serial.println("Communication with RN2xx3 unsuccessful.");
-        delay(2000);
+        delay(1000);
         _devEUI = myLora.hweui();
+        ++lora_connect_tries;
     }
 
     Serial.println("DevEUI: " + _devEUI);
     Serial.println("Firmware: " + myLora.sysver());
+
+    return (!_devEUI.isEmpty());
 }
 
 // Custom Base64 decoding function
@@ -224,14 +209,19 @@ namespace {
 }
 
 TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
+    
+    lora_ping();
     // Check if we are connected to TTN, if not try to join
     if (!is_joined_TTN()) {
         Serial.println("Not connected to TTN, attempting to join...");
+        led_on();
         if (!join_TTN()) {
             Serial.println("Failed to join TTN, cannot send data");
+            led_off();
             return TX_FAIL;  // Return failure if we can't join TTN
         }
         Serial.println("Successfully joined TTN");
+        led_off();
     }
 
     // Convert both the module and status to a two-byte hex prefix
@@ -246,7 +236,9 @@ TX_RETURN_TYPE tranceive(Module module, Status status, const char* data) {
     Serial.println(prefixedData);
     
     // Send the message
+    led_on();
     TX_RETURN_TYPE response = myLora.tx(prefixedData);
+    led_off();
 
     // Show send status after receiving message
     if (response == TX_SUCCESS) {
@@ -301,7 +293,7 @@ void processLoRaWANMessage(const DecomposedMessage& message) {
     
     // Handle LoRaWAN specific commands
     switch (message.data[0]) {
-      case '2':
+      case MODULE_WIFI:
         networksFound = getTop3Networks(macs, rssis);
         Serial.println("WiFi Networks Scan Results:");
         if (networksFound == 0) {
@@ -351,7 +343,7 @@ void processLoRaWANMessage(const DecomposedMessage& message) {
           // Send the WiFi data via LoRaWAN
           Serial.print("Sending WiFi data: ");
           Serial.println(wifiData);
-          TX_RETURN_TYPE wifiResponse = tranceive(MODULE_LORAWAN, STATUS_OK, wifiData);
+          TX_RETURN_TYPE wifiResponse = tranceive(MODULE_WIFI, STATUS_OK, wifiData);
           
           if (wifiResponse == TX_SUCCESS) {
             Serial.println("WiFi data sent successfully");
@@ -387,19 +379,54 @@ void processLoRaWANMessage(const DecomposedMessage& message) {
   }
 }
 
+// Function to lower the RX pin for at least 226 microseconds and send 0x55 character
+void wakeUp() {
+    Serial.println("Resetting RN2483 with RX pin and sending 0x55");
+    
+    // Configure RX pin as output temporarily
+    pinMode(RX, OUTPUT);
+    
+    // Lower the RX pin (set to LOW)
+    digitalWrite(RX, LOW);
+    
+    // Delay for at least 226 microseconds (using 230 to be safe)
+    delayMicroseconds(230);
+    
+    // Release the RX pin (back to HIGH)
+    digitalWrite(RX, HIGH);
+    
+    // Short delay to ensure the pin transition is complete
+    delayMicroseconds(10);
+    
+    // Reconfigure RX pin back for serial communication
+    pinMode(RX, INPUT);
+    
+    // Send the 0x55 character to the LoRa module
+    myLoRaSerial.write(0x55);
+    
+    // Wait for the transmission to complete
+    myLoRaSerial.flush();
+    
+    Serial.println("Reset and character transmission complete");
+    lora_ping();
+}
+
+
 // Function to put RN2483 LoRa module into deep sleep mode
 void deepSleep() {
+    lora_ping();
     Serial.println("Putting RN2483 into deep sleep mode");
     
     // Send the sleep command with maximum sleep time (4294967296 ms ≈ 49.7 days)
-    String response = myLora.sendRawCommand("sys sleep 4294967296");
+    myLora.sleep(4294967296);  // non-blocking
+    
     
     // Check response
-    if (response == "ok") {
-        Serial.println("RN2483 entered deep sleep successfully");
-    } else {
-        Serial.println("Failed to put RN2483 into deep sleep. Response: " + response);
-    }
+    //if (response == "ok") {
+    //   Serial.println("RN2483 entered deep sleep successfully");
+    //} else {
+    //    Serial.println("Failed to put RN2483 into deep sleep. Response: '" + response + "'");
+    //}
 }
 
 #endif // ENABLE_LORA_MODULE

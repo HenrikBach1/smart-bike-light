@@ -19,7 +19,10 @@ void setup() {
   delay(200); // Wait for serial console to open
   
 
-  Serial.printf("\nStartup mode = %d\n", deviceState.mode);
+  printDeviceState();
+  initialize_LED();
+  led_off();
+  battery.init();
 
   // Initialize somethings here before startup casue check
 
@@ -45,32 +48,32 @@ void setup() {
 
   
   // Initialize the things we need for ACTIVE mode, which we havents initialized in a previous routine.
-  initialize_LED();
-  initialize_LoRaWAN();
   initialize_physical_buttons();
-  initWiFiScanner();
-  Serial.println("WiFi Scanner initialized");
+  initAdx();
+  initPwrLed();
+  initialize_LoRaWAN();
+  Serial.println("Start stuff initialized");
 
   // This is the last things we do before entering active mode (loop)
   deviceState.mode = ACTIVE;
+  deviceState.isMoving = true;
+  deviceState.light_on = false;
   Serial.println("\tGoing into active mode");
-
-
+  clear_in_activity_int();
 }
 
 
 void loop() { // If we reach loop we are in active mode!
   // Read sensors here:
-  read_sensors();
-
+  //read_sensors();
+  // nothing here will block for a full second
+  tick_stuff(); // This is where we act on deviceState
+  tick_stuff_interval(); // This will only run every 500ms
   print_info_interval(); // print stuff every "interval" seconds
 
-  lora_ping(); // This will only run every X seconds
+  // lora_ping_routine(); // This will only run every X seconds - i say we dont need this since it does not make any sense.
 
-  // …any other work you want to do every pass through loop()
-  // nothing here will block for a full second
-  tick_stuff(); // This is where we set the light brightness, check battery life, movements, (LoRa?) and change modes
-
+  
 
 }
 

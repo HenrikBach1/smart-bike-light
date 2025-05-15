@@ -1,3 +1,5 @@
+#include "HardwareSerial.h"
+#include "esp32-hal-gpio.h"
 #include <Arduino.h>
 #include "PhotoResistor.h"
 
@@ -13,6 +15,7 @@ PhotoResistor::PhotoResistor(int photoresistorPin, int threshold) {
   _photoresistorPin = photoresistorPin;
   _state = false;
   _threshold = threshold;
+  pinMode(_photoresistorPin, INPUT);
 }
 
 void PhotoResistor::update() {

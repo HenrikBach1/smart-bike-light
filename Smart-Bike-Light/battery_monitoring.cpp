@@ -50,14 +50,16 @@ float battery_monitoring::time_left(int mode) {
   // Vælg load i mA baseret på mode
   float load_mA;
   switch (mode) {
-    case 0:  load_mA = 50.0F;  break;
-    case 1:  load_mA = 100.0F; break;
+    case NO_LIGHT: load_mA = 0.0F; break;
+    case ECO:  load_mA = 50.0F;  break;
+    case MEDIUM:  load_mA = 100.0F; break;
+    case STRONG: load_mA = 200.0F; break;
     default: load_mA = 200.0F; break;
   }
 
   int   pct      = battery_percentage();
   float rem_mAh  = (pct / 100.0F) * BATTERY_CAPACITY_mAh;
 
-  if (load_mA <= 0.0F) return 0.0F;
+  if (load_mA <= 0.0F) return 9999.0F;
   return rem_mAh / load_mA;  // timer
 }

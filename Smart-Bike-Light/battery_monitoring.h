@@ -1,9 +1,9 @@
-// bb_functions.h
 #ifndef BATTERY_MONITORING_H
 #define BATTERY_MONITORING_H
 
 
-#include "Pins.h"       // definerer PIN_ADC og PIN_CHARGE
+#include "Pins.h"       
+#include "Globals.h"
 #include <Arduino.h>
 
 class battery_monitoring {
