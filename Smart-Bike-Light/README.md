@@ -1,6 +1,6 @@
 # Code for smart bike light on the ESP32
 ## Dependencies
-- Smart Bike Light by group 3, including:
+- (physical) Smart Bike Light by group 3, including:
   - Arduino IDE
   - ESP32
   - LoRa Module
