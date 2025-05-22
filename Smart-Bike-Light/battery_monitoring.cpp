@@ -2,34 +2,31 @@
 #include <Arduino.h>
 
 void battery_monitoring::init() {
-  // Konfigurer ladestatus‐pin og ADC-pin
+  // Configure charging pin and ADC pin
   pinMode(BAT_CHG_INPUT, INPUT_PULLDOWN);
   pinMode(BAT_ADC_INPUT, INPUT_PULLDOWN);
   analogReadResolution(12);
 }
-
 bool battery_monitoring::charging() {
-  return digitalRead(BAT_CHG_INPUT) == HIGH;
+  return digitalRead(BAT_CHG_INPUT) == HIGH; // Returns true if battery is charging
+
 }
 
 float battery_monitoring::readCellVoltage() {
   int raw = analogRead(BAT_ADC_INPUT);
 
-  // 2) Omregn rå ADC til spænding på divider-benet
-  float vDivider = raw * (ADC_REF_VOLTAGE / float(ADC_MAX_COUNT));
+  float vDivider = raw * (ADC_REF_VOLTAGE / float(ADC_MAX_COUNT)); // calculate the voltage corresponding to the raw ADC value
 
-  // 3) Genskab cellespænding før divider
-  return vDivider * ((R1 + R2) / float(R2));
+  return vDivider * ((R1 + R2) / float(R2)); // Calculate the cell voltage before the voltage divider
 }
 
 int battery_monitoring::battery_percentage() {
   float v = readCellVoltage();
-
-  // Clamp opad/nedad
+// Returning 100 or 0 percent if the battery level is out of range
   if (v >= BATTERY_FULL_VOLTAGE)    return 100;
   if (v <= BATTERY_CUTOFF_VOLTAGE)  return   0;
 
-  // Øvre interval [3.4..4.2 V] → [20..100 %]
+  // Returns percentage based on the linear mapping between  [3.4..4.2 V] → [20..100 %]
   if (v >= BATTERY_BREAKPOINT_VOLT) {
     float pct = 20.0F
               + (v - BATTERY_BREAKPOINT_VOLT)
@@ -37,7 +34,7 @@ int battery_monitoring::battery_percentage() {
                 * 80.0F;
     return int(pct + 0.5F);
   }
-  // Nedre interval [2.65..3.4 V] → [0..20 %]
+  // Returns percentage based on the linear mapping between  [2.65..3.5 V] → [0..20 %]
   else {
     float pct = (v - BATTERY_CUTOFF_VOLTAGE)
               / (BATTERY_BREAKPOINT_VOLT - BATTERY_CUTOFF_VOLTAGE)
@@ -47,8 +44,8 @@ int battery_monitoring::battery_percentage() {
 }
 
 float battery_monitoring::time_left(int mode) {
-  // Vælg load i mA baseret på mode
   float load_mA;
+  // Chose load based on which mode light mode the battery is in
   switch (mode) {
     case NO_LIGHT: load_mA = 0.0F; break;
     case ECO:  load_mA = 50.0F;  break;
@@ -58,8 +55,8 @@ float battery_monitoring::time_left(int mode) {
   }
 
   int   pct      = battery_percentage();
-  float rem_mAh  = (pct / 100.0F) * BATTERY_CAPACITY_mAh;
+  float rem_mAh  = (pct / 100.0F) * BATTERY_CAPACITY_mAh; // Calculate the remaining capacity
 
   if (load_mA <= 0.0F) return 9999.0F;
-  return rem_mAh / load_mA;  // timer
+  return rem_mAh / load_mA;  // divides with the load for the light mode, to get an estimate of the battery lifetime
 }
