@@ -3,7 +3,8 @@
 - (physical) Smart Bike Light by group 3, including:
   - Arduino IDE
   - ESP32
-  - LoRa Module
+  - LoRa Module (RN2483)
+  - Accelerometer (ADXL35)
 - Arduino Libraries:
   - ```OneButton```
   - ```WiFi.h```
