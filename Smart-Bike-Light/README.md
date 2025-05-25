@@ -7,7 +7,6 @@
   - Accelerometer (ADXL35)
 - Arduino Libraries:
   - ```OneButton```
-  - ```WiFi.h```
   - ESP Libraries
  
 ## How to use
