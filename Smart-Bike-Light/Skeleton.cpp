@@ -2,7 +2,7 @@
 // Skeleton.cpp
 #include "Skeleton.h"
 
-
+// Time interval to print and chekc stuff
 unsigned long lastPrintTime = 0;
 unsigned long lastPingTime = 0;
 unsigned long lastTickTime = 0;
@@ -10,13 +10,14 @@ const unsigned long printInterval = 5000;  // milliseconds
 const unsigned long printIntervalLoRa = 30000;  // milliseconds
 const unsigned long printIntervalTick = 500;  // milliseconds
 
-
+// OneButton objects
 OneButton button1(BUTTON_1, false); /* active-HIGH */
 OneButton button2(BUTTON_2, false);
 
+// To hold mac adresses and rssis
 uint8_t lastMacs[3][6] = {{0x00}};
 uint8_t lastRssis[3] = {0x00};
-
+// Device state struct
 RTC_DATA_ATTR DeviceState deviceState = {
   .isMoving = true,
   .isBraking = 0,
@@ -28,7 +29,7 @@ RTC_DATA_ATTR DeviceState deviceState = {
   .lightMode = ECO,
   .light_on = false // Start with light off (but if clicked again turn on)
 };
-
+// Initialise photoresisotr/battery module
 PhotoResistor photoResistor(LDR_ADC_INPUT, 750);
 battery_monitoring battery;
 
@@ -39,7 +40,6 @@ const char* modeToString(Mode m) {
     case PARK:  return "PARK";
     case ACTIVE:  return "ACTIVE";
     case STOLEN: return "STOLEN";
-    // …add other modes here…
     default:           return "UNKNOWN";
   }
 }
@@ -48,12 +48,11 @@ const char* lightToString(LightMode l) {
     case ECO:    return "ECO";
     case MEDIUM: return "MEDIUM";
     case STRONG:  return "STRONG";
-    // …add other light modes here…
     default:     return "UNKNOWN";
   }
 }
 
-// your “print all fields” function:
+// “print all fields” function:
 void printDeviceState() {
   Serial.println(F("---- Device State ----"));
   Serial.print    (F("isMoving:         "));
@@ -80,7 +79,7 @@ void printDeviceState() {
 }
 
 
-
+// Function that prints device state
 void print_info_interval() {
   unsigned long now = millis();
   if (now - lastPrintTime >= printInterval) {
@@ -152,9 +151,6 @@ void tick_stuff() {
   button1.tick();
   button2.tick();
 
-
-
-
   if (!deviceState.isMoving) { // If not moving -> go to park mode
     //leave_TTN(); // Leave TTN before sleep
     deviceState.mode = PARK;
@@ -215,13 +211,6 @@ void tick_stuff() {
   }
 
 
-  // Sensor stuff here
-  // eg.
-
-  
-
-  
-
 }
 
 void tick_stuff_interval() {
@@ -237,7 +226,7 @@ void tick_stuff_interval() {
 
 }
 
-
+// Helpers to swith to the next light mode
 static LightMode nextLightMode(LightMode m) {
   return (m == STRONG) ? ECO : static_cast<LightMode>(m + 1);
 }
@@ -246,12 +235,7 @@ static LightMode prevLightMode(LightMode m) {
   return (m == ECO)    ? STRONG : static_cast<LightMode>(m - 1);
 }
 
-/**
- * Toggle the lightMode in state up or down.
- *
- * @param state  pointer to your device state
- * @param up     if true, go to the next mode; otherwise go to the previous
- */
+// Toggle the lightMode in state up or down.
 void toggleLightMode(DeviceState* state, bool up) {
   if (up) {
     state->lightMode = nextLightMode(state->lightMode);
@@ -259,7 +243,7 @@ void toggleLightMode(DeviceState* state, bool up) {
     state->lightMode = prevLightMode(state->lightMode);
   }
 }
-
+//Button handler functions below here:
 void handleClick1() {
   Serial.println("Btn1 clicked");
   Serial.println("Change mode DOWN");
@@ -279,7 +263,6 @@ void handleLongStart1() {
   adjustBrightnessSimple(0);
   deviceState.light_on = false;
   Serial.println("Btn1 long press");
-  // Turn of light here!
 }
 
 void handleDoubleClick1() {
@@ -307,7 +290,6 @@ void handleLongStart2() {
   adjustBrightnessSimple(0);
   deviceState.light_on = false;
   Serial.println("Btn2 long press");
-  // Turn of light here!
 }
 
 void handleDoubleClick2() {
@@ -492,9 +474,6 @@ void timerWakeupRoutineFromStorage() {
 
 void timerWakeupRoutineFromPark() {
   Serial.println("Doing park mode wakeup routine");
-  // Write code here
-  // Init. stuff
-  // send ping...
 
   if (!is_joined_TTN()) { // Test if we are joined
       Serial.println("Not connected - trying to connect...");
