@@ -1,11 +1,5 @@
 //file=Smart-Bike-Light.ino
 
-// NOTER:
-// Lav routines til start / "slut" af mode/opgaver
-//    -- Inde under det her er fx (og vigtigt) WiFi Scan routine + LoRa uplink function (reducer tiden!)
-// Tænk over hvad der skal slukkes hvornår
-// Lac struct/objekt der holder GLOBAL state af lygte (eller bare brug alle modulerne).
-// 
 
 #include "LedControl.h"
 #include "CustomLoRa.h"
@@ -18,13 +12,12 @@ void setup() {
   Serial.begin(115200); // Open serial communication
   delay(200); // Wait for serial console to open
   
-
+  // Initialize somethings here before startup casue check
   printDeviceState();
   initialize_LED();
   led_off();
   battery.init();
 
-  // Initialize somethings here before startup casue check
 
   // Since we are in setup, this wakeup cause is from DEEP SLEEP
   switch (esp_sleep_get_wakeup_cause()) {
@@ -64,8 +57,7 @@ void setup() {
 
 
 void loop() { // If we reach loop we are in active mode!
-  // Read sensors here:
-  //read_sensors();
+
   // nothing here will block for a full second
   tick_stuff(); // This is where we act on deviceState
   tick_stuff_interval(); // This will only run every 500ms
