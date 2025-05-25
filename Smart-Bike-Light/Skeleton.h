@@ -6,7 +6,7 @@
 #include <OneButton.h>
 #include <driver/rtc_io.h>
 
-#include <cstdio>    // for snprintf on many C++ toolchains
+#include <cstdio>    
 #include "esp_sleep.h"
 #include "WiFiScanner.h"
 #include "Globals.h"
