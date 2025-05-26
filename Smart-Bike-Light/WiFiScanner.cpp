@@ -30,7 +30,7 @@ int getTop3Networks(uint8_t macs[3][6], uint8_t rssis[3]) {
     return 0;
   }
 
-  // track top‑3 indexes and their RSSI
+  // here we track top‑3 indexes and their RSSI
   int topIdx[3]  = { -1, -1, -1 };
   int topRssi[3] = { -10000, -10000, -10000 };
 

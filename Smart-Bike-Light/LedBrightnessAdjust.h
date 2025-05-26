@@ -11,14 +11,20 @@
 
 // Declare global variables needed for brightness adjustment
 extern String input;
-#define ledPin LED_PIN  // Use the LED_PIN defined in Pins.h
+#define ledPin PWR_LED_PIN  // Use the LED_PIN defined in Pins.h
 
+void initPwrLed();
 void adjustBrightness();
+void adjustBrightnessSimple(int value);
+void shortBlinkLed(int n);
 
 #else
 
 // Empty function stub when module is disabled
+inline void initPwrLed() {}
 inline void adjustBrightness() {}
+inline void adjustBrightnessSimple() {}
+inline void shortBlinkLed(int n) {}
 
 #endif // ENABLE_LED_BRIGHTNESS
 

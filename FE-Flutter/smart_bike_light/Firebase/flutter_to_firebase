@@ -1,0 +1,41 @@
+//Simple function called sendHexDownlink. Used to send a payload to the Firebase server to update parameters and when combined with ttnWatcher funtion in firebase it sends data to the TTN network.
+
+import 'dart:convert';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:timeago/timeago.dart' as timeago;
+import '/flutter_flow/custom_functions.dart';
+import '/flutter_flow/lat_lng.dart';
+import '/flutter_flow/place.dart';
+import '/flutter_flow/uploaded_file.dart';
+import '/backend/backend.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+String? sendHexDownlink(
+  int? mode,
+  bool? isManual,
+  int? brightness,
+) {
+  /// MODIFY CODE ONLY BELOW THIS LINE
+
+  if (mode == null || isManual == null || brightness == null) {
+    return "00-00-00"; // fallback if any input is missing
+  }
+
+  try {
+    final modeHex = mode!.toRadixString(16).padLeft(2, '0').toUpperCase();
+    final isManualHex =
+        (isManual! ? 1 : 0).toRadixString(16).padLeft(2, '0').toUpperCase();
+    final brightnessHex =
+        brightness!.toRadixString(16).padLeft(2, '0').toUpperCase();
+
+    return '$modeHex-$isManualHex-$brightnessHex';
+  } catch (e) {
+    return '00-00-00'; // fallback
+  }
+
+  /// MODIFY CODE ONLY ABOVE THIS LINE
+}
