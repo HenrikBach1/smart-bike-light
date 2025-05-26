@@ -27,8 +27,8 @@ The Smart Bike Light aims to:
 - **Power Optimization:** Implement efficient power management strategies to maximize battery longevity in different modes.
 
 
-[^bike-safety-report]: Citation reference for bike safety report.<br>
-[^bike-theft-statistics]: Citation reference for bike theft statistics.
+[^bike-safety-report]: Aalborg Universitet, Bike Safety Report, 2020.<br>
+[^bike-theft-statistics]: Fyens Stiftstidens, Bike Theft Statistics, 2012.
 
 ---
 This repository has to main folders:
