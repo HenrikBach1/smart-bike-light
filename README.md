@@ -35,7 +35,7 @@ This repository has to main folders:
 - **Smart-Bike-Light:** Which contains all the code of the backend (BE) application/firmware of the IoT device written with Arduino IDE, and
 - **FE-Flutter/smart_bike_light:** Which contains all the Flutter/Dart code of the frontend (FE) test app, while Firebase sub folder contains code for the Firebase solution used in FlutterFlow.
 
-The final report of the project from the group is located [here](34346_IoT_smart_bike_light___group_3.pdf).
+The final report of the project from the group is located [here](34346_IoT_smart_bike_light___group_3.pdf) and the accompanying presented [slides](Group-3-slides.pdf).
 
 To install Flutter on local machine and run the Flutter test app, please look in [Flutter README](FE-Flutter/smart_bike_light/README.md).
 
