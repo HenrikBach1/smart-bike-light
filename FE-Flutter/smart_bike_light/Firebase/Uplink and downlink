@@ -1,0 +1,114 @@
+//Program with Uplink and downlink functions used in the Firebase backend. Data is decoded from the received format and saved in the database to be accessed in Flutterflow.
+
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onRequest } = require("firebase-functions/v2/https");
+const admin = require("firebase-admin");
+const fetch = require("node-fetch");
+
+admin.initializeApp();
+const db = admin.firestore();
+
+exports.ttnUplinkReceiver = onRequest(async (req, res) => { 
+  const body = req.body;
+
+  if (!body.uplink_message || !body.end_device_ids) {
+    return res.status(400).send("Invalid TTN payload");
+  }
+
+  const deviceId = body.end_device_ids.device_id;
+  const payload_raw = body.uplink_message.frm_payload;
+
+  // Decode base64 to string
+  let decoded = Buffer.from(payload_raw, 'base64').toString('utf-8');
+
+  // Optional hex-ascii fallback if needed
+  if (/^[0-9a-fA-F]+$/.test(decoded) && decoded.length % 2 === 0) {
+    const asciiFromHex = Buffer.from(decoded, 'hex').toString('utf-8');
+    console.log("Detected hex-encoded ASCII payload. Decoded to:", asciiFromHex);
+    decoded = asciiFromHex;
+  }
+
+  console.log("Decoded TTN payload:", decoded);
+
+  // Now parse format: 04-04-03-MAC:RSSI,...
+  const [modeStr, batteryModeStr, macCountStr, ...rest] = decoded.split('-');
+
+  const mode = parseInt(modeStr, 10);           // Command type (e.g. 4 = battery)
+  const batteryMode = parseInt(batteryModeStr, 10);  // e.g. 4
+  const macCount = parseInt(macCountStr, 10);
+
+  const macDataRaw = rest.join('-');  // Join in case dashes are in MACs
+  if (isNaN(macCount) || macCount < 1 || !macDataRaw) {
+    console.warn(`Invalid MAC payload: ${decoded}`);
+    return res.status(400).send("Malformed MAC payload");
+  }
+
+  const macPairs = macDataRaw.split(',').slice(0, macCount);
+  const macs = macPairs.map(pair => {
+    const [mac, rssi] = pair.split(':');
+    return { mac, rssi: parseInt(rssi, 10) };
+  });
+
+  await db.collection("bike_light_state").doc(deviceId).set({
+    mode,
+    batteryMode,
+    mac1: macs[0] || null,
+    mac2: macs[1] || null,
+    mac3: macs[2] || null,
+    raw_payload: decoded,
+    received_at: body.received_at,
+    updated_at: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  console.log(`Saved battery mode ${batteryMode} + ${macs.length} MAC(s) from ${deviceId}`);
+  res.status(200).send("OK");
+});
+
+
+// Modular function for watching downlink queue
+exports.ttnWatcher = onDocumentCreated("SendDownLink/{docId}", async (event) => {
+  const data = event.data?.data();
+
+  console.log("Received new downlink document:", data);
+
+  const payload = data?.downlink_payload;
+
+  if (!payload) {
+    console.log("No payload found in new document.");
+    return;
+  }
+  const baseUrl = "https://eu1.cloud.thethings.network/api/v3/as/applications/smart-bike-light-henrikbach1/devices/iot-course-device-henrik/down/push";
+  const apiKey = "Bearer NNSXS.2RRIRHET3ST3AKV7YMQKLQNPWAYDGME5B6ILBHA.EZUBU7VTBNBHP4J45MZYX6674P6SUTTO2Z4YJ2D6CEMFFEYS3B4Q";
+
+    const asciiHex = Array.from(payload)
+    .map(char => char.charCodeAt(0).toString(16).padStart(2, '0'))
+    .join('');
+
+const frmPayload = Buffer.from(asciiHex, 'hex').toString('base64');
+
+  const body = {
+    downlinks: [
+      {
+        f_port: 15,
+        frm_payload: frmPayload,
+        priority: "NORMAL"
+      }
+    ]
+  };
+
+  try {
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    const result = await response.text();
+    console.log("Downlink sent:", result);
+  } catch (error) {
+    console.error("Error sending downlink:", error);
+  }
+});

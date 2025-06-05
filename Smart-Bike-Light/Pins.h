@@ -6,8 +6,8 @@
 #include <Arduino.h> // Include Arduino library for digitalWrite and pinMode
 
 // Pin definitions for ESP32 board
-#define BUTTON_1        0   // GPIO for Button 1
-#define BUTTON_2        4   // GPIO for Button 2
+#define BUTTON_1        27   // GPIO for Button 1
+#define BUTTON_2        26   // GPIO for Button 2
 #define LED_PIN         2   //Internal LED
 #define PWR_LED_PIN     5   // PIN for controlling big led (PWM)
 #define ADXL345_INT1    15  // GPIO for ADXL345 Interrupt 1
@@ -20,6 +20,7 @@
 #define BAT_ADC_INPUT   36  // GPIO for Battery ADC input
 #define LDR_ADC_INPUT   39  // GPIO for LDR ADC input
 #define UART            1   // UART number (1 or 2) for ESP32
+#define BAT_CHG_INPUT   34 // GPIO for USB-charging input
 
 
 #endif // PINS_H

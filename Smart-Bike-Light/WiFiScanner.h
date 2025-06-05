@@ -3,8 +3,8 @@
 #ifndef WIFISCANNER_H
 #define WIFISCANNER_H
 
-#include <Arduino.h>   // ← pull in the core + event types
-#include "Globals.h"   // Include Globals.h for ENABLE_WIFI_SCANNER flag
+#include <Arduino.h>   
+#include "Globals.h"   
 
 #if ENABLE_WIFI_SCANNER
 

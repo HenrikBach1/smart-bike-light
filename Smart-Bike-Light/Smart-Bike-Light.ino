@@ -1,69 +1,71 @@
 //file=Smart-Bike-Light.ino
 
-/*
- * Includes section
- */
 
 #include "LedControl.h"
 #include "CustomLoRa.h"
 #include "Globals.h" // Include (Pins.h) for LED_PIN, RST, RX, TX, and UART
+#include "Skeleton.h"
 #include "WiFiScanner.h" // Include for getTop3Networks function
+
 
 void setup() {
   Serial.begin(115200); // Open serial communication
   delay(200); // Wait for serial console to open
-  Serial.println("Startup");
-
+  
+  // Initialize somethings here before startup casue check
+  printDeviceState();
   initialize_LED();
+  led_off();
+  battery.init();
+
+
+  // Since we are in setup, this wakeup cause is from DEEP SLEEP
+  switch (esp_sleep_get_wakeup_cause()) {
+    case ESP_SLEEP_WAKEUP_UNDEFINED: // First startup
+      Serial.println("\tFirst startup");
+      firstStartupRoutine();
+      break;
+    case ESP_SLEEP_WAKEUP_EXT0: // Woken from MPU interrup pin
+      Serial.println("\tWoken from MPU interrupt");
+      mpuWakeupRoutine();
+      break;
+    case ESP_SLEEP_WAKEUP_EXT1: // Woken from one of the two buttons
+      Serial.println("\tWoken up by button press");
+      // Fall through
+      break;
+    case ESP_SLEEP_WAKEUP_TIMER:
+      Serial.println("\tWoken up by timer");
+      timerWakeupRoutine();
+      break;
+  }
+
+  
+  // Initialize the things we need for ACTIVE mode, which we havents initialized in a previous routine.
+  initialize_physical_buttons();
+  initAdx();
+  initPwrLed();
   initialize_LoRaWAN();
+  Serial.println("Start stuff initialized");
 
-  initWiFiScanner();
-  Serial.println("WiFi Scanner initialized");
-
-  // Join TTN once during setup
-  if (join_TTN()) {
-    Serial.println("TTN join successful in setup");
-  } else {
-    Serial.println("TTN join failed in setup, will retry in loop");
-  }
+  // This is the last things we do before entering active mode (loop)
+  deviceState.mode = ACTIVE;
+  deviceState.isMoving = true;
+  deviceState.light_on = false;
+  Serial.println("\tGoing into active mode");
+  clear_in_activity_int();
 }
 
-void loop() {
 
-  // Transmit and receive data
-  Serial.println("Sending status update...");
-  TX_RETURN_TYPE response = tranceive(MODULE_NONE, STATUS_OK, "!"); // Send a status update/ping message/I'm alive message
+void loop() { // If we reach loop we are in active mode!
+
+  // nothing here will block for a full second
+  tick_stuff(); // This is where we act on deviceState
+  tick_stuff_interval(); // This will only run every 500ms
+  print_info_interval(); // print stuff every "interval" seconds
+
+  // lora_ping_routine(); // This will only run every X seconds - i say we dont need this since it does not make any sense.
+
   
-  // Display response status
-  if (response == TX_SUCCESS) {
-    Serial.println("Status update sent successfully");
-  } else {
-    Serial.println("Failed to send status update");
-  }
-  
-  // Print out the contents of the global decomposed message
-  Serial.println("\n--- BEGIN Global Decomposed Message Contents ---");
-  Serial.print("Target Module: ");
-  switch (g_decomposedMessage.toModule) {
-    case MODULE_NONE:
-      Serial.println("None (0)");
-      break;
-    case MODULE_LORAWAN:
-      Serial.println("LoRaWAN (1)");
-      processLoRaWANMessage(g_decomposedMessage);
-      break;
-    default:
-      Serial.print("Unknown (");
-      Serial.print((int)g_decomposedMessage.toModule);
-      Serial.println(")");
-      break;
-  }
-  
-  Serial.print("Message Data: \"");
-  Serial.print(g_decomposedMessage.data);
-  Serial.println("\"");
-  Serial.println("--- END Global Decomposed Message Contents ---\n");
-  
-  // Add a delay to avoid flooding the serial console
-  delay(5000);
+
 }
+

@@ -3,23 +3,35 @@
 #ifndef MPU6050_MODULE_H
 #define MPU6050_MODULE_H
 
+#define HARD_BREAK 30
+#define SOFT_BREAK 10
+#define STILL_RANGE 2
+
+#define X_OFFSET 2
+#define Y_OFFSET 1
+#define Z_OFFSET 31
+
 #include "Globals.h" // Include for module enable/disable flags
+#include "Pins.h"
+#include <SparkFun_ADXL345.h>         // SparkFun ADXL345 Library
+#include "Skeleton.h"
 
 #if ENABLE_MPU6050
 
-// Function declarations for MPU6050 module
-void initializeMPU6050();
-bool isMPU6050Moving();
-void calibrateMPU6050();
-void readMPU6050Data();
+extern int lastMessage;
+extern ADXL345 adxl;
+
+void initAdx();
+int checkBrakeType(int x, int y, int z);
+void IRAM_ATTR pin1Interrupt();
+void clear_in_activity_int();
+void ADXL_ISR();
+
 
 #else
 
 // Empty function stubs when module is disabled
-inline void initializeMPU6050() {}
-inline bool isMPU6050Moving() { return false; }
-inline void calibrateMPU6050() {}
-inline void readMPU6050Data() {}
+
 
 #endif // ENABLE_MPU6050
 
